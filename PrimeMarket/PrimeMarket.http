@@ -1,0 +1,6 @@
+@PrimeMarket_HostAddress = http://localhost:5101
+
+GET {{PrimeMarket_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
