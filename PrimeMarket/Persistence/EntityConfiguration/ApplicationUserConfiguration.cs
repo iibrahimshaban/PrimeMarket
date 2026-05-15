@@ -1,9 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PrimeMarket.Abstraction.Const;
-using PrimeMarket.Entities;
-
-namespace PrimeMarket.Persistence.EntityConfiguration;
+﻿namespace PrimeMarket.Persistence.EntityConfiguration;
 
 public class ApplicationUserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 {
