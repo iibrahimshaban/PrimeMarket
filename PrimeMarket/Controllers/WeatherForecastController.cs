@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PrimeMarket.Controllers;
@@ -22,4 +23,5 @@ public class WeatherForecastController : ControllerBase
         })
         .ToArray();
     }
+    
 }

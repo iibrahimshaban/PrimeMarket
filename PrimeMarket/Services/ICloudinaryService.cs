@@ -1,4 +1,6 @@
-﻿namespace PrimeMarket.Services;
+﻿using PrimeMarket.Abstraction;
+
+namespace PrimeMarket.Services;
 
 public interface ICloudinaryService
 {
