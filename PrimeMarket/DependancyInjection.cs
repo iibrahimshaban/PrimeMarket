@@ -1,9 +1,8 @@
 ﻿using CloudinaryDotNet;
+using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using PrimeMarket.Entities;
-using PrimeMarket.Persistence;
 using PrimeMarket.Services;
+using System.Reflection;
 
 namespace PrimeMarket;
 
@@ -14,6 +13,8 @@ public static class DependancyInjection
         services
             .AddEndpointsApiExplorer()
             .AddSwaggerGen()
+            .AddMapsterConfiguration()
+            .AddServiceRegistration()
             .AddDbContextConfiguration(configuration)
             .AddCloudinaryImageHosting(configuration);
 
@@ -40,7 +41,7 @@ public static class DependancyInjection
 
         return services;
     }
-    public static IServiceCollection AddCloudinaryImageHosting(this IServiceCollection services, IConfiguration configuration)
+    private static IServiceCollection AddCloudinaryImageHosting(this IServiceCollection services, IConfiguration configuration)
     {
         var cloudinarySettings = configuration.GetSection("Cloudinary");
 
@@ -52,6 +53,19 @@ public static class DependancyInjection
         services.AddSingleton(new Cloudinary(account));
 
         services.AddScoped<ICloudinaryService, CloudinaryService>();
+        return services;
+    }
+    private static IServiceCollection AddMapsterConfiguration(this IServiceCollection services)
+    {
+        var MappingConfig = TypeAdapterConfig.GlobalSettings;
+        MappingConfig.Scan(Assembly.GetExecutingAssembly());
+
+        services.AddSingleton<IMapper>(new Mapper(MappingConfig));
+        return services;
+    }
+    private static IServiceCollection AddServiceRegistration(this IServiceCollection services)
+    {
+        services.AddScoped<IProductService, ProductService>();
         return services;
     }
 }
