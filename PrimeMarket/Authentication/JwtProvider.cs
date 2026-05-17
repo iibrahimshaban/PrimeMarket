@@ -5,8 +5,10 @@ using System.Text;
 
 namespace PrimeMarket.Authentication
 {
-    public class JwtProvider : IJwtProvider
+    public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
     {
+        private readonly JwtOptions _JwtOptions = options.Value;
+
         public (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user)
         {
             Claim[] claims = [
@@ -17,21 +19,20 @@ namespace PrimeMarket.Authentication
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             ];
 
-            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("|dpk+&]Y4xaqVCJd3fC+0Q)scm?cqcoMVWk^XXp7@Yn\r\n\r\n"));
+            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JwtOptions.Key));
 
             var signingCredintials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
 
-            var expiresIn = 30;
-
             var token = new JwtSecurityToken(
-                issuer: "PrimeMarket",
-                audience: "PrimeMarket users",
+                issuer: _JwtOptions.Issuer,
+                audience: _JwtOptions.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expiresIn),
+                expires: DateTime.UtcNow.AddMinutes(_JwtOptions.ExpiryMinutes),
                 signingCredentials: signingCredintials
             );
 
-            return (token: new JwtSecurityTokenHandler().WriteToken(token), expiresIn: expiresIn * 60);
+            return (token: new JwtSecurityTokenHandler().WriteToken(token), 
+                    expiresIn: _JwtOptions.ExpiryMinutes * 60);
         }
     }
 }
