@@ -40,5 +40,15 @@ public class MappingConfiguration : IRegister
 
            .Map(dest => dest.OrderCount,
                src => src.OrderItems.Sum(oi => oi.Quantity));
+
+        config.NewConfig<CreateProductRequest, Product>()
+            .Map(dest => dest.ProductCategories, src => src.CategoryIds.Distinct().Select(id => new ProductCategory { CategoryId = id }));
+
+        config.NewConfig<UpdateProductRequest, Product>()
+            .Ignore(dest => dest.Id)
+            .Ignore(dest => dest.SellerId)
+            .Ignore(dest => dest.Images)
+            .Ignore(dest => dest.ProductCategories);
+
     }
 }

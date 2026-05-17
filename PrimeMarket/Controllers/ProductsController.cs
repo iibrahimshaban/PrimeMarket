@@ -34,13 +34,11 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpPost]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
     {
 
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                       ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.CreateProductAsync(request, sellerId);
 
         return result.IsSuccess
@@ -52,12 +50,10 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpPut("{id:int}")]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateProductRequest request)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                       ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.UpdateProductAsync(id, request, sellerId);
 
         return result.IsSuccess
@@ -69,12 +65,10 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpDelete("{id:int}")]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                       ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.DeleteProductAsync(id, sellerId);
 
         return result.IsSuccess
@@ -86,12 +80,10 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpPost("{id:int}/images")]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> AddImage(int id, IFormFile image)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                       ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.AddImageAsync(id, image, sellerId);
 
         return result.IsSuccess
@@ -102,12 +94,10 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpDelete("{id:int}/images/{imageId:int}")]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> DeleteImage(int id, int imageId)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.DeleteImageAsync(id, imageId, sellerId);
 
         return result.IsSuccess
@@ -119,12 +109,10 @@ public class ProductsController(IProductService productService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpPut("{id:int}/images/{imageId:int}/set-primary")]
-    //[Authorize(Roles = "Seller,Admin")]
+    [Authorize]
     public async Task<IActionResult> SetPrimaryImage(int id, int imageId)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? DefaultUsers.UserId;
-
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await productService.SetPrimaryImageAsync(id, imageId, sellerId);
 
         return result.IsSuccess

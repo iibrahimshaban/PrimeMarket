@@ -54,15 +54,9 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
         if (existingCategoryCount != categoryIds.Count)
             return Result.Failure<ProductResponse>(ProductError.InvalidCategory);
 
-        var product = new Product
-        {
-            SellerId = sellerId,
-            Name = request.Name,
-            Description = request.Description,
-            Price = request.Price,
-            Stock = request.Stock,
-            IsActive = true
-        };
+        var product = request.Adapt<Product>(); 
+        product.SellerId = sellerId; 
+        product.IsActive = true;
 
         var safeProductName = request.Name.ToLower().Replace(" ", "-");
 
@@ -95,10 +89,6 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
                 });
             }
         }
-
-        product.ProductCategories = categoryIds
-            .Select(cId => new ProductCategory { CategoryId = cId })
-            .ToList();
 
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
@@ -136,10 +126,7 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
         if (existingCategoryCount != categoryIds.Count)
             return Result.Failure(ProductError.InvalidCategory);
 
-        product.Name = request.Name;
-        product.Description = request.Description;
-        product.Price = request.Price;
-        product.Stock = request.Stock;
+        request.Adapt(product);
 
         _context.ProductCategories.RemoveRange(product.ProductCategories);
         await _context.ProductCategories.AddRangeAsync(
