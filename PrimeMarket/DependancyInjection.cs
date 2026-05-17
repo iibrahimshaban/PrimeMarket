@@ -67,6 +67,13 @@ public static class DependancyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<IJwtProvider, JwtProvider>();
 
+        services.AddOptions<JwtOptions>()
+                .BindConfiguration(JwtOptions.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+        var settings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -81,9 +88,9 @@ public static class DependancyInjection
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("|dpk+&]Y4xaqVCJd3fC+0Q)scm?cqcoMVWk^XXp7@Yn\r\n\r\n")),
-                ValidIssuer = "PrimeMarket",
-                ValidAudience = "PrimeMarket users"
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings?.Key!)),
+                ValidIssuer = settings?.Issuer,
+                ValidAudience = settings?.Audience
             };
         });
 
