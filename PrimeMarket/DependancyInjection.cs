@@ -22,6 +22,7 @@ public static class DependancyInjection
             .AddServiceRegistration()
             .AddDbContextConfiguration(configuration)
             .AddCloudinaryImageHosting(configuration)
+            .AddCORSService(configuration)
             .AddAuthConfig(configuration);
 
         return services;
@@ -108,6 +109,19 @@ public static class DependancyInjection
     private static IServiceCollection AddServiceRegistration(this IServiceCollection services)
     {
         services.AddScoped<IProductService, ProductService>();
+
+        return services;
+    }
+    private static IServiceCollection AddCORSService(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddCors(options =>
+            options.AddDefaultPolicy(builder =>
+                builder
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .WithOrigins(configuration.GetSection("AllowedOrigins").Get<string[]>()!)
+                )
+        );
 
         return services;
     }
