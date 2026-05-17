@@ -1,9 +1,14 @@
 ﻿using CloudinaryDotNet;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PrimeMarket.Authentication;
 using PrimeMarket.Entities;
 using PrimeMarket.Persistence;
 using PrimeMarket.Services;
+using PrimeMarket.Services.Authentication;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace PrimeMarket;
 
@@ -15,7 +20,8 @@ public static class DependancyInjection
             .AddEndpointsApiExplorer()
             .AddSwaggerGen()
             .AddDbContextConfiguration(configuration)
-            .AddCloudinaryImageHosting(configuration);
+            .AddCloudinaryImageHosting(configuration)
+            .AddAuthConfig(configuration);
 
         return services;
     }
@@ -52,6 +58,34 @@ public static class DependancyInjection
         services.AddSingleton(new Cloudinary(account));
 
         services.AddScoped<ICloudinaryService, CloudinaryService>();
+        return services;
+    }
+
+    public static IServiceCollection AddAuthConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddSingleton<IJwtProvider, JwtProvider>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("|dpk+&]Y4xaqVCJd3fC+0Q)scm?cqcoMVWk^XXp7@Yn\r\n\r\n")),
+                ValidIssuer = "PrimeMarket",
+                ValidAudience = "PrimeMarket users"
+            };
+        });
+
         return services;
     }
 }
