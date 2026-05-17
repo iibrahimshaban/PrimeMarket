@@ -1,4 +1,5 @@
 using PrimeMarket;
+using PrimeMarket.Services.Authentication;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
