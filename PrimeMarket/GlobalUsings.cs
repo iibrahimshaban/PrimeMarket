@@ -6,3 +6,4 @@ global using PrimeMarket.Abstraction.Const;
 global using PrimeMarket.Abstraction;
 global using PrimeMarket.Persistence;
 global using Mapster;
+global using Microsoft.Extensions.Options;

@@ -1,8 +1,13 @@
 ﻿using CloudinaryDotNet;
-using MapsterMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using PrimeMarket.Authentication;
 using PrimeMarket.Services;
+using PrimeMarket.Services.Authentication;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Reflection;
+using MapsterMapper;
 
 namespace PrimeMarket;
 
@@ -16,7 +21,8 @@ public static class DependancyInjection
             .AddMapsterConfiguration()
             .AddServiceRegistration()
             .AddDbContextConfiguration(configuration)
-            .AddCloudinaryImageHosting(configuration);
+            .AddCloudinaryImageHosting(configuration)
+            .AddAuthConfig(configuration);
 
         return services;
     }
@@ -56,6 +62,42 @@ public static class DependancyInjection
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         return services;
     }
+
+    public static IServiceCollection AddAuthConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddSingleton<IJwtProvider, JwtProvider>();
+
+        services.AddOptions<JwtOptions>()
+                .BindConfiguration(JwtOptions.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+        var settings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings?.Key!)),
+                ValidIssuer = settings?.Issuer,
+                ValidAudience = settings?.Audience
+            };
+        });
+
+        return services;
+    }
+
     private static IServiceCollection AddMapsterConfiguration(this IServiceCollection services)
     {
         var MappingConfig = TypeAdapterConfig.GlobalSettings;
@@ -67,6 +109,7 @@ public static class DependancyInjection
     private static IServiceCollection AddServiceRegistration(this IServiceCollection services)
     {
         services.AddScoped<IProductService, ProductService>();
+
         return services;
     }
 }
