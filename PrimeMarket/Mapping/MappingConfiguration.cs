@@ -10,11 +10,17 @@ public class MappingConfiguration : IRegister
            .Map(dest => dest.InStock,
                src => src.Stock > 0)
 
-           .Map(dest => dest.PrimaryImageUrl,
-               src => src.Images
-                   .Where(i => i.IsPrimary)
-                   .Select(i => i.Url)
-                   .FirstOrDefault() ?? string.Empty)
+           .Map(dest => dest.Thumbnail,
+                src => src.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.Url)
+                    .FirstOrDefault() ?? string.Empty)
+
+            .Map(dest => dest.Images,
+                src => (IReadOnlyList<ProductImageResponse>)src.Images
+                    .Select(i => new ProductImageResponse(i.Id, i.Url, i.IsPrimary))
+                    .OrderByDescending(i => i.IsPrimary)
+                    .ToList())
 
            .Map(dest => dest.SellerName,
                src => $"{src.Seller.FirstName} {src.Seller.LastName}")
