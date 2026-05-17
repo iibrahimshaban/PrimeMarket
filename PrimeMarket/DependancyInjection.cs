@@ -46,6 +46,7 @@ public static class DependancyInjection
              .AddEntityFrameworkStores<ApplicationDbContext>()
              .AddDefaultTokenProviders();
 
+        services.AddHttpContextAccessor();
         return services;
     }
     private static IServiceCollection AddCloudinaryImageHosting(this IServiceCollection services, IConfiguration configuration)

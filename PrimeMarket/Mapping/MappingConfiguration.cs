@@ -10,11 +10,17 @@ public class MappingConfiguration : IRegister
            .Map(dest => dest.InStock,
                src => src.Stock > 0)
 
-           .Map(dest => dest.PrimaryImageUrl,
-               src => src.Images
-                   .Where(i => i.IsPrimary)
-                   .Select(i => i.Url)
-                   .FirstOrDefault() ?? string.Empty)
+           .Map(dest => dest.Thumbnail,
+                src => src.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.Url)
+                    .FirstOrDefault() ?? string.Empty)
+
+            .Map(dest => dest.Images,
+                src => (IReadOnlyList<ProductImageResponse>)src.Images
+                    .Select(i => new ProductImageResponse(i.Id, i.Url, i.IsPrimary))
+                    .OrderByDescending(i => i.IsPrimary)
+                    .ToList())
 
            .Map(dest => dest.SellerName,
                src => $"{src.Seller.FirstName} {src.Seller.LastName}")
@@ -34,5 +40,15 @@ public class MappingConfiguration : IRegister
 
            .Map(dest => dest.OrderCount,
                src => src.OrderItems.Sum(oi => oi.Quantity));
+
+        config.NewConfig<CreateProductRequest, Product>()
+            .Map(dest => dest.ProductCategories, src => src.CategoryIds.Distinct().Select(id => new ProductCategory { CategoryId = id }));
+
+        config.NewConfig<UpdateProductRequest, Product>()
+            .Ignore(dest => dest.Id)
+            .Ignore(dest => dest.SellerId)
+            .Ignore(dest => dest.Images)
+            .Ignore(dest => dest.ProductCategories);
+
     }
 }
