@@ -91,8 +91,27 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
             Items: products.Adapt<List<ProductResponse>>(),
             Page: request.Page,
             PageSize: request.PageSize,
-            TotalCount: totalCount
-        );
+            TotalCount: totalCount);
+    }
+
+    //---------------------------------------------------------------------------------------------------
+
+    public async Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id)
+    {
+        var product = await _context.Products
+            .Where(p => p.Id == id && p.IsActive)
+            .Include(p => p.Seller)
+            .Include(p => p.Images)
+            .Include(p => p.Reviews)
+                .ThenInclude(r => r.User)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .FirstOrDefaultAsync();
+
+        if (product is null)
+            return Result.Failure<ProductDetailCustomerResponse>(ProductError.ProductNotFound);
+
+        return Result.Success(product.Adapt<ProductDetailCustomerResponse>());
     }
 
     //---------------------------------------------------------------------------------------------------

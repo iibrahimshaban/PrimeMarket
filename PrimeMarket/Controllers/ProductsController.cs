@@ -19,6 +19,18 @@ public class ProductsController(IProductService _productService) : ControllerBas
     }
 
     // -----------------------------------------------------------------------
+    
+    [HttpGet("details/{id:int}")]
+    public async Task<IActionResult> GetCustomerProduct(int id)
+    {
+        var result = await productService.GetProductByIdForCustomerAsync(id);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : result.ToProblem();
+    }
+
+    // -----------------------------------------------------------------------
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)

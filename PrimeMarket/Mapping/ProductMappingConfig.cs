@@ -2,7 +2,7 @@
 
 namespace PrimeMarket.Mapping;
 
-public class MappingConfiguration : IRegister
+public class ProductMappingConfig : IRegister
 {
     public void Register(TypeAdapterConfig config)
     {
@@ -49,6 +49,44 @@ public class MappingConfiguration : IRegister
             .Ignore(dest => dest.SellerId)
             .Ignore(dest => dest.Images)
             .Ignore(dest => dest.ProductCategories);
+
+        config.NewConfig<Product, ProductCustomerResponse>()
+            .ConstructUsing(src => new ProductCustomerResponse(
+                src.Id,
+                src.Name,
+                src.Price,
+                src.Stock > 0 && src.IsActive,
+                src.Images.FirstOrDefault(i => i.IsPrimary) != null
+                    ? src.Images.First(i => i.IsPrimary).Url
+                    : null,
+                src.ProductCategories.Select(pc => pc.Category.Name).FirstOrDefault(),
+                src.Reviews.Any() ? Math.Round(src.Reviews.Average(r => r.Rating), 1) : 0,
+                src.Reviews.Count
+            ));
+
+        config.NewConfig<Review, ProductReviewResponse>()
+            .Map(dest => dest.UserName, src => src.User.FirstName + " " + src.User.LastName)
+            .Map(dest => dest.UserAvatar, src => src.User.ProfilePictureUrl);
+
+        config.NewConfig<Product, ProductDetailCustomerResponse>()
+            .ConstructUsing(src => new ProductDetailCustomerResponse(
+                src.Id,
+                src.Name,
+                src.Description,
+                src.Price,
+                src.Stock,
+                src.Seller.FirstName + " " + src.Seller.LastName,
+                src.Images.FirstOrDefault(i => i.IsPrimary) != null
+                    ? src.Images.First(i => i.IsPrimary).Url
+                    : null,
+                src.Images.Select(i => i.Url).ToList(),
+                src.ProductCategories.Select(pc => pc.Category.Name).FirstOrDefault(),
+                src.Reviews.Any()
+                    ? Math.Round(src.Reviews.Average(r => r.Rating), 1)
+                    : 0,
+                src.Reviews.Count,
+                src.Reviews.Adapt<List<ProductReviewResponse>>()
+            ));
 
     }
 }

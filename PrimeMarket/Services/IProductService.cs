@@ -6,6 +6,7 @@ namespace PrimeMarket.Services;
 public interface IProductService
 {
     Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request);
+    Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id);
     Task<Result<ProductResponse>> GetProductByIdAsync(int id);
     Task<Result<ProductResponse>> CreateProductAsync(CreateProductRequest request, string sellerId);
     Task<Result> UpdateProductAsync(int id, UpdateProductRequest request, string sellerId);
