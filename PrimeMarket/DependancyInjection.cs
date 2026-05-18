@@ -118,6 +118,7 @@ public static class DependancyInjection
     private static IServiceCollection AddServiceRegistration(this IServiceCollection services)
     {
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }
