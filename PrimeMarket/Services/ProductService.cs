@@ -1,4 +1,5 @@
 ﻿using PrimeMarket.Contracts;
+using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Products;
 using PrimeMarket.Errors;
 
@@ -9,6 +10,59 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     private readonly ApplicationDbContext _context = context;
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
 
+    public async Task<PaginationList<ProductCustomerResponse>> GetAllProductsAsync(RequestFilter filter,CancellationToken cancellationToken)
+    {
+        // 1. Base query — IQueryable, nothing hits DB yet
+        var query = _context.Products
+            .Where(p => p.IsActive && p.Stock > 0)
+            .Include(p => p.Images)
+            .Include(p => p.Reviews)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .AsQueryable();
+
+        // 2. Search
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
+        {
+            var search = filter.SearchValue.Trim().ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(search));
+        }
+
+        // 3. Sort — safe column whitelist (never interpolate raw column names)
+        var isDesc = filter.SortDirection.Equals("DESC", StringComparison.OrdinalIgnoreCase);
+
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "name" => isDesc ? query.OrderByDescending(p => p.Name)
+                                 : query.OrderBy(p => p.Name),
+
+            "price" => isDesc ? query.OrderByDescending(p => p.Price)
+                                 : query.OrderBy(p => p.Price),
+
+            "stock" => isDesc ? query.OrderByDescending(p => p.Stock)
+                                 : query.OrderBy(p => p.Stock),
+
+            "rating" => isDesc
+                            ? query.OrderByDescending(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+                            : query.OrderBy(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0),
+
+            // Default: most ordered → highest rated (your original logic)
+            _ => query
+                    .OrderByDescending(p => p.OrderItems.Sum(oi => (int?)oi.Quantity) ?? 0)
+                    .ThenByDescending(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+        };
+
+        // 4. Project to DTO *before* pagination count/skip/take
+        //    This keeps the SELECT lean — no unnecessary columns
+        var projected = query.ProjectToType<ProductCustomerResponse>();
+
+        // 5. Paginate (hits DB twice: COUNT + paged SELECT)
+        return await PaginationList<ProductCustomerResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
+    }
     public async Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request)
     {
         var query = _context.Products
