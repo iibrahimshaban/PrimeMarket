@@ -8,15 +8,18 @@ namespace PrimeMarket.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ProductsController(IProductService productService) : ControllerBase
+public class ProductsController(IProductService _productService) : ControllerBase
 {
-    private readonly IProductService productService = productService;
+    private readonly IProductService productService = _productService;
     [HttpGet("")]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] ProductFilterRequest request)
     {
-        var products = await productService.GetAllProductsAsync();
-        return Ok(products);
+        var result = await productService.GetFilteredProductsAsync(request);
+        return Ok(result);
     }
+
+    // -----------------------------------------------------------------------
+    
     [HttpGet("details/{id:int}")]
     public async Task<IActionResult> GetCustomerProduct(int id)
     {
