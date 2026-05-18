@@ -11,13 +11,20 @@ namespace PrimeMarket.Controllers
     public class AuthController(IAuthService authService) : ControllerBase
     {
         private readonly IAuthService _authService = authService;
-        [HttpPost]
-        public async Task<IActionResult> LogInAsync(LogInRequest request, CancellationToken cancellationToken)
+        [HttpPost("")]
+        public async Task<IActionResult> LogIn([FromBody] LogInRequest request, CancellationToken cancellationToken)
         {
-            var authResult = await _authService.GetTokenAsync(request.Email, request.Password
+            var Result = await _authService.GetTokenAsync(request.Email, request.Password
                                                                 , cancellationToken);
 
-            return authResult is null ? BadRequest("invalid username/password") : Ok(authResult);
+            return Result.IsSuccess ? Ok(Result.Value) : Result.ToProblem();
+        }
+        [HttpPost("Register")]
+        public async Task<IActionResult> Register([FromBody] RegisterReq request, CancellationToken cancellationToken)
+        {
+            var Result = await _authService.RegisterAsync(request, cancellationToken);
+
+            return Result.IsSuccess ? Ok(Result.Value) : Result.ToProblem();
         }
     }
 }

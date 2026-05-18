@@ -96,6 +96,14 @@ public static class DependancyInjection
             };
         });
 
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Password.RequiredLength = 6;
+            options.SignIn.RequireConfirmedEmail = true;
+            options.User.RequireUniqueEmail = true;
+        });
+
         return services;
     }
 
