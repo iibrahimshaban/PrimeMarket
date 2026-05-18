@@ -8,21 +8,36 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     private readonly ApplicationDbContext _context = context;
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
 
-    public async Task<IEnumerable<ProductResponse>> GetAllProductsAsync()
+    public async Task<IEnumerable<ProductCustomerResponse>> GetAllProductsAsync()
     {
         var products = await _context.Products
-             .Where(p => p.IsActive && p.Stock > 0)
-             .Include(p => p.Seller)
-             .Include(p => p.Images)
-             .Include(p => p.Reviews)
-             .Include(p => p.OrderItems)
-             .Include(p => p.ProductCategories)
-                 .ThenInclude(pc => pc.Category)
-             .OrderByDescending(p => p.OrderItems.Sum(oi => oi.Quantity))
-                 .ThenByDescending(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
-             .ToListAsync();         
+        .Where(p => p.IsActive && p.Stock > 0)
+        .Include(p => p.Images)
+        .Include(p => p.Reviews)
+        .Include(p => p.ProductCategories)
+            .ThenInclude(pc => pc.Category)
+        .OrderByDescending(p => p.OrderItems.Sum(oi => oi.Quantity))
+            .ThenByDescending(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+        .ToListAsync();
 
-        return products.Adapt<List<ProductResponse>>();  
+        return products.Adapt<List<ProductCustomerResponse>>();
+    }
+    public async Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id)
+    {
+        var product = await _context.Products
+            .Where(p => p.Id == id && p.IsActive)
+            .Include(p => p.Seller)
+            .Include(p => p.Images)
+            .Include(p => p.Reviews)
+                .ThenInclude(r => r.User)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .FirstOrDefaultAsync();
+
+        if (product is null)
+            return Result.Failure<ProductDetailCustomerResponse>(ProductError.ProductNotFound);
+
+        return Result.Success(product.Adapt<ProductDetailCustomerResponse>());
     }
 
     //---------------------------------------------------------------------------------------------------
