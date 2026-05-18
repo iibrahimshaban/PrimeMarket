@@ -1,10 +1,12 @@
 ﻿using PrimeMarket.Contracts;
+using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Products;
 
 namespace PrimeMarket.Services;
 
 public interface IProductService
 {
+    Task<PaginationList<ProductCustomerResponse>> GetAllProductsAsync(RequestFilter filter, CancellationToken cancellationToken);
     Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request);
     Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id);
     Task<Result<ProductResponse>> GetProductByIdAsync(int id);

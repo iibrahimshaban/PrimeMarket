@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Products;
 using PrimeMarket.Services;
 using System.Security.Claims;
@@ -11,6 +12,15 @@ namespace PrimeMarket.Controllers;
 public class ProductsController(IProductService _productService) : ControllerBase
 {
     private readonly IProductService productService = _productService;
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll([FromQuery] RequestFilter requestFilter, CancellationToken cancellationToken)
+    {
+        var products = await productService.GetAllProductsAsync(requestFilter, cancellationToken);
+
+        return Ok(products);
+    }
+
     [HttpGet("")]
     public async Task<IActionResult> GetAll([FromQuery] ProductFilterRequest request)
     {
