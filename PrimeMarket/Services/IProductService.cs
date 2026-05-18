@@ -1,10 +1,11 @@
-﻿using PrimeMarket.Contracts.Products;
+﻿using PrimeMarket.Contracts;
+using PrimeMarket.Contracts.Products;
 
 namespace PrimeMarket.Services;
 
 public interface IProductService
 {
-    Task<IEnumerable<ProductResponse>> GetAllProductsAsync();
+    Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request);
     Task<Result<ProductResponse>> GetProductByIdAsync(int id);
     Task<Result<ProductResponse>> CreateProductAsync(CreateProductRequest request, string sellerId);
     Task<Result> UpdateProductAsync(int id, UpdateProductRequest request, string sellerId);

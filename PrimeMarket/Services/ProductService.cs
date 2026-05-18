@@ -1,4 +1,5 @@
-﻿using PrimeMarket.Contracts.Products;
+﻿using PrimeMarket.Contracts;
+using PrimeMarket.Contracts.Products;
 using PrimeMarket.Errors;
 
 namespace PrimeMarket.Services;
@@ -8,21 +9,90 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     private readonly ApplicationDbContext _context = context;
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
 
-    public async Task<IEnumerable<ProductResponse>> GetAllProductsAsync()
+    public async Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request)
     {
-        var products = await _context.Products
-             .Where(p => p.IsActive && p.Stock > 0)
-             .Include(p => p.Seller)
-             .Include(p => p.Images)
-             .Include(p => p.Reviews)
-             .Include(p => p.OrderItems)
-             .Include(p => p.ProductCategories)
-                 .ThenInclude(pc => pc.Category)
-             .OrderByDescending(p => p.OrderItems.Sum(oi => oi.Quantity))
-                 .ThenByDescending(p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
-             .ToListAsync();         
+        var query = _context.Products
+            .Where(p => p.IsActive)
+            .Include(p => p.Seller)
+            .Include(p => p.Images)
+            .Include(p => p.Reviews)
+            .Include(p => p.OrderItems)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .AsQueryable();
 
-        return products.Adapt<List<ProductResponse>>();  
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.Where(p => p.Name.Contains(request.Search));
+
+        if (request.CategoryId.HasValue)
+            query = query.Where(p => p.ProductCategories
+                .Any(pc => pc.CategoryId == request.CategoryId.Value));
+
+        if (request.MinPrice.HasValue)
+            query = query.Where(p => p.Price >= request.MinPrice.Value);
+
+        if (request.MaxPrice.HasValue)
+            query = query.Where(p => p.Price <= request.MaxPrice.Value);
+
+        if (request.InStock.HasValue)
+            query = query.Where(p => request.InStock.Value ? p.Stock > 0 : p.Stock == 0);
+
+        switch (request.SortBy)
+        {
+            case ProductSortBy.Price:
+                if (request.IsDescending)
+                    query = query.OrderByDescending(p => p.Price);
+                else
+                    query = query.OrderBy(p => p.Price);
+
+                break;
+
+            case ProductSortBy.Rating:
+                if (request.IsDescending)
+                    query = query.OrderByDescending(
+                        p => p.Reviews.Average(r => (double?)r.Rating) ?? 0
+                    );
+                else
+                    query = query.OrderBy(
+                        p => p.Reviews.Average(r => (double?)r.Rating) ?? 0
+                    );
+
+                break;
+
+            case ProductSortBy.Popularity:
+                if (request.IsDescending)
+                    query = query.OrderByDescending(
+                        p => p.OrderItems.Sum(oi => oi.Quantity)
+                    );
+                else
+                    query = query.OrderBy(
+                        p => p.OrderItems.Sum(oi => oi.Quantity)
+                    );
+
+                break;
+
+            default:
+                if (request.IsDescending)
+                    query = query.OrderByDescending(p => p.CreatedOn);
+                else
+                    query = query.OrderBy(p => p.CreatedOn);
+
+                break;
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var products = await query
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        return new PaginatedResponse<ProductResponse>(
+            Items: products.Adapt<List<ProductResponse>>(),
+            Page: request.Page,
+            PageSize: request.PageSize,
+            TotalCount: totalCount
+        );
     }
 
     //---------------------------------------------------------------------------------------------------
