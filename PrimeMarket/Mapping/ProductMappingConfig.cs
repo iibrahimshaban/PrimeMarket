@@ -48,7 +48,8 @@ public class ProductMappingConfig : IRegister
             .Ignore(dest => dest.Id)
             .Ignore(dest => dest.SellerId)
             .Ignore(dest => dest.Images)
-            .Ignore(dest => dest.ProductCategories);
+            .Ignore(dest => dest.ProductCategories)
+            .Ignore(dest => dest.Stock);
 
         config.NewConfig<Product, ProductCustomerResponse>()
             .ConstructUsing(src => new ProductCustomerResponse(
