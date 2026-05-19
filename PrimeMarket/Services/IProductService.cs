@@ -7,7 +7,7 @@ namespace PrimeMarket.Services;
 public interface IProductService
 {
     Task<PaginationList<ProductCustomerResponse>> GetAllProductsAsync(RequestFilter filter, CancellationToken cancellationToken);
-    Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request);
+    Task<PaginationList<SellerProductResponse>> GetSellerProductsAsync(string sellerId,RequestFilter filter, CancellationToken cancellationToken);
     Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id);
     Task<Result<ProductResponse>> GetProductByIdAsync(int id);
     Task<Result<ProductResponse>> CreateProductAsync(CreateProductRequest request, string sellerId);
