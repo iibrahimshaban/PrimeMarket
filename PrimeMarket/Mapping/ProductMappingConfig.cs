@@ -96,16 +96,21 @@ public class ProductMappingConfig : IRegister
                 src.Price,
                 src.Stock,
                 src.IsActive,
-                src.Images.FirstOrDefault(i => i.IsPrimary) != null
-                    ? src.Images.First(i => i.IsPrimary).Url
-                    : null,
+
+                src.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.Url)
+                    .FirstOrDefault(),
+
                 src.Reviews.Any()
                     ? Math.Round(src.Reviews.Average(r => r.Rating), 1)
                     : 0,
+
                 src.Reviews.Count,
+
                 src.ProductCategories
                     .Select(pc => pc.Category.Name)
-                    .FirstOrDefault()
+                    .ToList()
             ));
     }
 }
