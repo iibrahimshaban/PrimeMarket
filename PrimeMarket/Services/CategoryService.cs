@@ -1,6 +1,6 @@
 ﻿using PrimeMarket.Contracts.Categories;
 using PrimeMarket.Errors;
-using System.Text.RegularExpressions;
+using PrimeMarket.Helpers;
 
 namespace PrimeMarket.Services;
 
@@ -41,7 +41,7 @@ public class CategoryService(ApplicationDbContext context) : ICategoryService
             return Result.Failure<CategoryResponse>(CategoryError.CategoryAlreadyExists);
 
         var category = request.Adapt<Category>();
-        category.Slug = GenerateSlug(request.Name);
+        category.Slug = GenerateSlug.Generate(request.Name);
 
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
@@ -65,7 +65,7 @@ public class CategoryService(ApplicationDbContext context) : ICategoryService
             return Result.Failure(CategoryError.CategoryAlreadyExists);
 
         request.Adapt(category);
-        category.Slug = GenerateSlug(request.Name);
+        category.Slug = GenerateSlug.Generate(request.Name);
 
 
         await _context.SaveChangesAsync();
@@ -90,11 +90,5 @@ public class CategoryService(ApplicationDbContext context) : ICategoryService
         await _context.SaveChangesAsync();
 
         return Result.Success();
-    }
-
-    //------------------------------------------------------------------------
-    private static string GenerateSlug(string name)
-    {
-        return Regex.Replace(name.Trim().ToLower(), @"\s+", "-");
     }
 }

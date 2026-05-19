@@ -89,5 +89,23 @@ public class ProductMappingConfig : IRegister
                 src.Reviews.Adapt<List<ProductReviewResponse>>()
             ));
 
+        config.NewConfig<Product, SellerProductResponse>()
+            .ConstructUsing(src => new SellerProductResponse(
+                src.Id,
+                src.Name,
+                src.Price,
+                src.Stock,
+                src.IsActive,
+                src.Images.FirstOrDefault(i => i.IsPrimary) != null
+                    ? src.Images.First(i => i.IsPrimary).Url
+                    : null,
+                src.Reviews.Any()
+                    ? Math.Round(src.Reviews.Average(r => r.Rating), 1)
+                    : 0,
+                src.Reviews.Count,
+                src.ProductCategories
+                    .Select(pc => pc.Category.Name)
+                    .FirstOrDefault()
+            ));
     }
 }

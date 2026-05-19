@@ -63,91 +63,62 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
             filter.PageSize
         );
     }
-    public async Task<PaginatedResponse<ProductResponse>> GetFilteredProductsAsync(ProductFilterRequest request)
+    public async Task<PaginationList<SellerProductResponse>> GetSellerProductsAsync(
+        string sellerId,
+        RequestFilter filter,
+        CancellationToken cancellationToken)
     {
         var query = _context.Products
-            .Where(p => p.IsActive)
-            .Include(p => p.Seller)
-            .Include(p => p.Images)
-            .Include(p => p.Reviews)
-            .Include(p => p.OrderItems)
-            .Include(p => p.ProductCategories)
-                .ThenInclude(pc => pc.Category)
+            .Where(p => p.SellerId == sellerId)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(p => p.Name.Contains(request.Search));
-
-        if (request.CategoryId.HasValue)
-            query = query.Where(p => p.ProductCategories
-                .Any(pc => pc.CategoryId == request.CategoryId.Value));
-
-        if (request.MinPrice.HasValue)
-            query = query.Where(p => p.Price >= request.MinPrice.Value);
-
-        if (request.MaxPrice.HasValue)
-            query = query.Where(p => p.Price <= request.MaxPrice.Value);
-
-        if (request.InStock.HasValue)
-            query = query.Where(p => request.InStock.Value ? p.Stock > 0 : p.Stock == 0);
-
-        switch (request.SortBy)
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
         {
-            case ProductSortBy.Price:
-                if (request.IsDescending)
-                    query = query.OrderByDescending(p => p.Price);
-                else
-                    query = query.OrderBy(p => p.Price);
+            var search = filter.SearchValue.Trim().ToLower();
 
-                break;
-
-            case ProductSortBy.Rating:
-                if (request.IsDescending)
-                    query = query.OrderByDescending(
-                        p => p.Reviews.Average(r => (double?)r.Rating) ?? 0
-                    );
-                else
-                    query = query.OrderBy(
-                        p => p.Reviews.Average(r => (double?)r.Rating) ?? 0
-                    );
-
-                break;
-
-            case ProductSortBy.Popularity:
-                if (request.IsDescending)
-                    query = query.OrderByDescending(
-                        p => p.OrderItems.Sum(oi => oi.Quantity)
-                    );
-                else
-                    query = query.OrderBy(
-                        p => p.OrderItems.Sum(oi => oi.Quantity)
-                    );
-
-                break;
-
-            default:
-                if (request.IsDescending)
-                    query = query.OrderByDescending(p => p.CreatedOn);
-                else
-                    query = query.OrderBy(p => p.CreatedOn);
-
-                break;
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(search));
         }
 
-        var totalCount = await query.CountAsync();
+        var isDesc = filter.SortDirection.Equals(
+            "DESC",
+            StringComparison.OrdinalIgnoreCase);
 
-        var products = await query
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync();
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "name" => isDesc
+                ? query.OrderByDescending(p => p.Name)
+                : query.OrderBy(p => p.Name),
 
-        return new PaginatedResponse<ProductResponse>(
-            Items: products.Adapt<List<ProductResponse>>(),
-            Page: request.Page,
-            PageSize: request.PageSize,
-            TotalCount: totalCount);
+            "price" => isDesc
+                ? query.OrderByDescending(p => p.Price)
+                : query.OrderBy(p => p.Price),
+
+            "stock" => isDesc
+                ? query.OrderByDescending(p => p.Stock)
+                : query.OrderBy(p => p.Stock),
+
+            "rating" => isDesc
+                ? query.OrderByDescending(
+                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+                : query.OrderBy(
+                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0),
+
+            _ => query
+                .OrderByDescending(
+                    p => p.OrderItems.Sum(oi => (int?)oi.Quantity) ?? 0)
+                .ThenByDescending(
+                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+        };
+
+        var projected = query.ProjectToType<SellerProductResponse>();
+
+        return await PaginationList<SellerProductResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
     }
-
     //---------------------------------------------------------------------------------------------------
 
     public async Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id)

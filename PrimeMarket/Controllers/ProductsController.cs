@@ -21,15 +21,20 @@ public class ProductsController(IProductService _productService) : ControllerBas
         return Ok(products);
     }
 
-    [HttpGet("")]
-    public async Task<IActionResult> GetAll([FromQuery] ProductFilterRequest request)
+    // -----------------------------------------------------------------------
+
+    [HttpGet("seller")]
+    [Authorize]
+    public async Task<IActionResult> GetSellerProducts([FromQuery] RequestFilter requestFilter,CancellationToken cancellationToken)
     {
-        var result = await productService.GetFilteredProductsAsync(request);
-        return Ok(result);
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var products = await productService.GetSellerProductsAsync(sellerId!,requestFilter, cancellationToken);
+
+        return Ok(products);
     }
 
     // -----------------------------------------------------------------------
-    
+
     [HttpGet("details/{id:int}")]
     public async Task<IActionResult> GetCustomerProduct(int id)
     {
@@ -61,7 +66,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     {
 
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.CreateProductAsync(request, sellerId);
+        var result = await productService.CreateProductAsync(request, sellerId!);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value)
@@ -76,7 +81,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     public async Task<IActionResult> Update(int id, [FromBody] UpdateProductRequest request)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.UpdateProductAsync(id, request, sellerId);
+        var result = await productService.UpdateProductAsync(id, request, sellerId!);
 
         return result.IsSuccess
             ? NoContent()
@@ -91,7 +96,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     public async Task<IActionResult> Delete(int id)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.DeleteProductAsync(id, sellerId);
+        var result = await productService.DeleteProductAsync(id, sellerId!);
 
         return result.IsSuccess
             ? NoContent()
@@ -106,7 +111,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     public async Task<IActionResult> AddImage(int id, IFormFile image)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.AddImageAsync(id, image, sellerId);
+        var result = await productService.AddImageAsync(id, image, sellerId!);
 
         return result.IsSuccess
             ? Ok(result.Value)
@@ -120,7 +125,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     public async Task<IActionResult> DeleteImage(int id, int imageId)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.DeleteImageAsync(id, imageId, sellerId);
+        var result = await productService.DeleteImageAsync(id, imageId, sellerId!);
 
         return result.IsSuccess
             ? NoContent()
@@ -135,7 +140,7 @@ public class ProductsController(IProductService _productService) : ControllerBas
     public async Task<IActionResult> SetPrimaryImage(int id, int imageId)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.SetPrimaryImageAsync(id, imageId, sellerId);
+        var result = await productService.SetPrimaryImageAsync(id, imageId, sellerId!);
 
         return result.IsSuccess
             ? NoContent()
