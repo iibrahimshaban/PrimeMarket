@@ -1,13 +1,14 @@
 ﻿using CloudinaryDotNet;
+using FluentValidation;
+using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using PrimeMarket.Authentication;
 using PrimeMarket.Services;
 using PrimeMarket.Services.Authentication;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.Reflection;
-using MapsterMapper;
+using System.Text;
 
 namespace PrimeMarket;
 
@@ -20,6 +21,7 @@ public static class DependancyInjection
             .AddSwaggerGen()
             .AddMapsterConfiguration()
             .AddServiceRegistration()
+            .AddValidationConfig()
             .AddDbContextConfiguration(configuration)
             .AddCloudinaryImageHosting(configuration)
             .AddCORSService(configuration)
@@ -119,6 +121,8 @@ public static class DependancyInjection
     {
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IWishListService, WishListService>();
+        services.AddScoped<ICartService, CartService>();
 
         return services;
     }
@@ -133,6 +137,11 @@ public static class DependancyInjection
                 )
         );
 
+        return services;
+    }
+    private static IServiceCollection AddValidationConfig(this IServiceCollection services)
+    {
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         return services;
     }
 }
