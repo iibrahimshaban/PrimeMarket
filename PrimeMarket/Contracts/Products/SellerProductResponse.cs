@@ -9,6 +9,6 @@
      string? PrimaryImageUrl,
      double AverageRating,
      int ReviewCount,
-     string? CategoryName
+     IReadOnlyList<string> Categories
     );
 }
