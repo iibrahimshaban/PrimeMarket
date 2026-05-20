@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using PrimeMarket.Contracts.Authentication;
 using PrimeMarket.Services.Authentication;
+using SurveyBasket.Contracts.Authentication;
 
 namespace PrimeMarket.Controllers
 {
@@ -24,7 +25,22 @@ namespace PrimeMarket.Controllers
         {
             var Result = await _authService.RegisterAsync(request, cancellationToken);
 
-            return Result.IsSuccess ? Ok(Result.Value) : Result.ToProblem();
+            return Result.IsSuccess ? Ok() : Result.ToProblem();
+        }
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _authService.ConfirmEmailAsync(request);
+
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
+
+        [HttpPost("resend-confirmation-email")]
+        public async Task<IActionResult> ResendConfirmationEmail([FromBody] ResendConfirmationEmail request, CancellationToken cancellationToken)
+        {
+            var result = await _authService.ResendConfirmationEmailAsync(request);
+
+            return result.IsSuccess ? Ok() : result.ToProblem();
         }
     }
 }

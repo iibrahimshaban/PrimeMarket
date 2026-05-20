@@ -1,15 +1,27 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.WebUtilities;
 using PrimeMarket.Authentication;
 using PrimeMarket.Contracts.Authentication;
 using PrimeMarket.Contracts.Products;
 using PrimeMarket.Errors;
+using SurveyBasket.Contracts.Authentication;
+using SurveyBasket.Helpers;
+using System.Text;
 
 namespace PrimeMarket.Services.Authentication
 {
-    public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider) : IAuthService
+    public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider
+                                , SignInManager<ApplicationUser> signInManager,
+                                ILogger<AuthService> logger, IEmailSender emailSender,
+                                IHttpContextAccessor httpContextAccessor) : IAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly IJwtProvider _jwtToken = jwtProvider;
+        private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+        private readonly ILogger<AuthService> _logger = logger;
+        private readonly IEmailSender _emailSender = emailSender;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
         public async Task<Result<AuthResponse>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
         {
@@ -18,20 +30,23 @@ namespace PrimeMarket.Services.Authentication
             if (user == null)
                 return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-            var isValidUser = await _userManager.CheckPasswordAsync(user, password);
+            var result = await _signInManager.PasswordSignInAsync(user, password, false, false);
 
-            if (!isValidUser)
-                return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+            if (result.Succeeded)
+            {
+                var (token, expiresIn) = _jwtToken.GenerateJwtToken(user);
+                return Result.Success(new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn));
+            }
 
-            return Result.Success(GenerateJwtTokenHelper(user));
+            return Result.Failure<AuthResponse>(result.IsNotAllowed ? UserErrors.EmailNotConfirmed : UserErrors.InvalidCredentials);
         }
 
-        public async Task<Result<AuthResponse>> RegisterAsync(RegisterReq registerReq, CancellationToken cancellationToken)
+        public async Task<Result> RegisterAsync(RegisterReq registerReq, CancellationToken cancellationToken)
         {
             var emailIsExist = await _userManager.Users.AnyAsync(x => x.Email == registerReq.Email, cancellationToken);
 
             if (emailIsExist)
-                return Result.Failure<AuthResponse>(UserErrors.DuplicatedEmail);
+                return Result.Failure(UserErrors.DuplicatedEmail);
 
             var user = registerReq.Adapt<ApplicationUser>();
             user.UserName = registerReq.Email;
@@ -40,18 +55,79 @@ namespace PrimeMarket.Services.Authentication
 
             if (result.Succeeded)
             {
-                return Result.Success(GenerateJwtTokenHelper(user));
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                _logger.LogInformation("Confirmation code: {code}", code);
+
+                await SendConfirmationEmail(user, code);
+                return Result.Success();
             }
 
             var error = result.Errors.First();
 
-            return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+        }
+        public async Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request)
+        {
+            if (await _userManager.FindByIdAsync(request.UserId) is not { } user)
+                return Result.Failure(UserErrors.InvalidCode);
+
+            if (user.EmailConfirmed)
+                return Result.Failure(UserErrors.DuplicatedConfirmation);
+
+            var code = request.Code;
+
+            try
+            {
+                code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+                
+            }
+            catch (FormatException)
+            {
+                return Result.Failure(UserErrors.InvalidCode);
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, code);
+
+            if (result.Succeeded)
+                return Result.Success();
+
+            var error = result.Errors.First();
+
+            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
         }
 
-        private AuthResponse GenerateJwtTokenHelper(ApplicationUser user)
+        public async Task<Result> ResendConfirmationEmailAsync(ResendConfirmationEmail request)
         {
-            var (token, expiresIn) = _jwtToken.GenerateJwtToken(user);
-            return new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+            if (await _userManager.FindByEmailAsync(request.Email) is not { } user)
+                return Result.Success();
+
+            if (user.EmailConfirmed)
+                return Result.Failure(UserErrors.DuplicatedConfirmation);
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+            _logger.LogInformation("Confirmation code: {code}", code);
+
+            await SendConfirmationEmail(user, code);
+
+            return Result.Success();
+        }
+
+        private async Task SendConfirmationEmail(ApplicationUser user, string code)
+        {
+            var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
+
+            var emailBody = EmailBodyBuilder.GenerateEmailBody("EmailConfirmation",
+                templateModel: new Dictionary<string, string>
+                {
+                { "{{name}}", user.FirstName },
+                    { "{{action_url}}", $"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
+                }
+            );
+
+            await _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: Email Confirmation", emailBody);
         }
     }
 }

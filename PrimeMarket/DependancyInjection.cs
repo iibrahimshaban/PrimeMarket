@@ -3,10 +3,12 @@ using FluentValidation;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.IdentityModel.Tokens;
 using PrimeMarket.Authentication;
 using PrimeMarket.Services;
 using PrimeMarket.Services.Authentication;
+using SurveyBasket.Settings;
 using System.Reflection;
 using System.Text;
 
@@ -69,6 +71,7 @@ public static class DependancyInjection
     public static IServiceCollection AddAuthConfig(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmailSender, EmailService>();
         services.AddSingleton<IJwtProvider, JwtProvider>();
 
         services.AddOptions<JwtOptions>()
@@ -105,6 +108,9 @@ public static class DependancyInjection
             options.SignIn.RequireConfirmedEmail = true;
             options.User.RequireUniqueEmail = true;
         });
+
+        services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+        services.AddHttpContextAccessor();
 
         return services;
     }
