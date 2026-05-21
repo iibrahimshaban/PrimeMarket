@@ -146,4 +146,13 @@ public class ProductsController(IProductService _productService) : ControllerBas
             ? NoContent()
             : result.ToProblem();
     }
+    [HttpGet("category/{categoryId}")]
+    public async Task<IActionResult> GetProductsByCategoryId(int categoryId, CancellationToken cancellationToken)
+    {
+        var result = await _productService.GetProductByCategoryIdAsync(categoryId, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : NotFound(result.Error);
+    }
 }

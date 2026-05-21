@@ -1,5 +1,4 @@
 ﻿using CloudinaryDotNet;
-using FluentValidation;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -130,6 +129,8 @@ public static class DependancyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IWishListService, WishListService>();
         services.AddScoped<ICartService, CartService>();
+        services.AddScoped<IAddressService, AddressService>();
+        services.AddScoped<IOrderService, OrderService>();
 
         return services;
     }
