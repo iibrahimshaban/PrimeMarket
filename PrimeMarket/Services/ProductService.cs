@@ -63,6 +63,22 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
             filter.PageSize
         );
     }
+
+    public async Task<Result<IEnumerable<ProductCustomerResponse>>> GetProductByCategoryIdAsync(int categoryId, CancellationToken cancellationToken)
+    {
+        var product = await _context.Products
+            .Where(p => p.IsActive && p.Stock > 0 && p.ProductCategories.Any(pc => pc.CategoryId == categoryId))
+            .Include(p => p.Images)
+            .Include(p => p.Reviews)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .ToListAsync(cancellationToken);
+
+        if (product is null)
+            return Result.Failure<IEnumerable<ProductCustomerResponse>>(ProductError.ProductNotFound);
+
+        return Result.Success(product.Adapt<IEnumerable<ProductCustomerResponse>>());
+    }
     public async Task<PaginationList<SellerProductResponse>> GetSellerProductsAsync(
         string sellerId,
         RequestFilter filter,
