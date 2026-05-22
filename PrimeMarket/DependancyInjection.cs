@@ -1,4 +1,5 @@
 ﻿using CloudinaryDotNet;
+using FluentValidation.AspNetCore;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -72,6 +73,7 @@ public static class DependancyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmailSender, EmailService>();
         services.AddSingleton<IJwtProvider, JwtProvider>();
+        services.AddScoped<IUserProfileService, UserProfileService>();
 
         services.AddOptions<JwtOptions>()
                 .BindConfiguration(JwtOptions.SectionName)
@@ -149,7 +151,9 @@ public static class DependancyInjection
     }
     private static IServiceCollection AddValidationConfig(this IServiceCollection services)
     {
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddFluentValidationAutoValidation()
+                .AddFluentValidationClientsideAdapters()
+                .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         return services;
     }
 }
