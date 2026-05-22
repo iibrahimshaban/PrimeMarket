@@ -96,7 +96,23 @@ namespace PrimeMarket.Services.Authentication
 
             return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
         }
+        public async Task<Result> ForgetPasswordConfirmAsync(string email)
+        {
+            if (await _userManager.FindByEmailAsync(email) is not { } user)
+                return Result.Success();
 
+            if (!user.EmailConfirmed)
+                return Result.Failure(UserErrors.EmailNotConfirmed);
+
+            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+            _logger.LogInformation("Reset code: {code}", code);
+
+            await SendForgetPasswordConfirmationEmail(user, code);
+
+            return Result.Success();
+        }
         public async Task<Result> ResendConfirmationEmailAsync(ResendConfirmationEmail request)
         {
             if (await _userManager.FindByEmailAsync(request.Email) is not { } user)
@@ -115,6 +131,33 @@ namespace PrimeMarket.Services.Authentication
             return Result.Success();
         }
 
+        public async Task<Result> ResetPasswordAsync(MyResetPasswordRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+
+            if (user is null || !user.EmailConfirmed)
+                return Result.Failure(UserErrors.InvalidCode);
+
+            IdentityResult result;
+
+            try
+            {
+                var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Code));
+                result = await _userManager.ResetPasswordAsync(user, code, request.NewPassword);
+            }
+            catch (FormatException)
+            {
+                result = IdentityResult.Failed(_userManager.ErrorDescriber.InvalidToken());
+            }
+
+            if (result.Succeeded)
+                return Result.Success();
+
+            var error = result.Errors.First();
+
+            return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status401Unauthorized));
+        }
+
         private async Task SendConfirmationEmail(ApplicationUser user, string code)
         {
             var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
@@ -128,6 +171,21 @@ namespace PrimeMarket.Services.Authentication
             );
 
             await _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: Email Confirmation", emailBody);
+        }
+
+        private async Task SendForgetPasswordConfirmationEmail(ApplicationUser user, string code)
+        {
+            var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
+
+            var emailBody = EmailBodyBuilder.GenerateEmailBody("ForgetPassword",
+                templateModel: new Dictionary<string, string>
+                {
+                { "{{name}}", user.FirstName },
+                    { "{{action_url}}", $"{origin}/auth/ForgetPassword?userId={user.Id}&code={code}" }
+                }
+            );
+
+            await _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: ForgetPassword Confirmation", emailBody);
         }
     }
 }

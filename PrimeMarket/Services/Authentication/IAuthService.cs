@@ -9,5 +9,7 @@ namespace PrimeMarket.Services.Authentication
         Task<Result> RegisterAsync(RegisterReq registerReq, CancellationToken cancellationToken);
         Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request);
         Task<Result> ResendConfirmationEmailAsync(ResendConfirmationEmail request);
+        Task<Result> ForgetPasswordConfirmAsync(string email);
+        Task<Result> ResetPasswordAsync(MyResetPasswordRequest request);
     }
 }
