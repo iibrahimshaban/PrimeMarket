@@ -10,4 +10,7 @@ public static class OrderError
 
     public static readonly Error InvalidPromoCode =
         new("Order.InvalidPromoCode", "Promo code is invalid or expired.",StatusCodes.Status400BadRequest);
+
+    public static readonly Error NotFound = 
+        new("Order.NotFound", "Order not found.", StatusCodes.Status404NotFound);
 }
