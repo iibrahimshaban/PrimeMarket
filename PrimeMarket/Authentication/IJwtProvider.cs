@@ -2,6 +2,6 @@
 {
     public interface IJwtProvider
     {
-        (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user);
+        (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles);
     }
 }
