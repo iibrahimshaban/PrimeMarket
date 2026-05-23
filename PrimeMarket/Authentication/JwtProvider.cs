@@ -2,6 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace PrimeMarket.Authentication
 {
@@ -9,14 +10,15 @@ namespace PrimeMarket.Authentication
     {
         private readonly JwtOptions _JwtOptions = options.Value;
 
-        public (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user)
+        public (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles)
         {
             Claim[] claims = [
                 new(JwtRegisteredClaimNames.Sub, user.Id),
                 new(JwtRegisteredClaimNames.Email, user.Email!),
                 new(JwtRegisteredClaimNames.FamilyName, user.LastName),
                 new(JwtRegisteredClaimNames.GivenName, user.FirstName),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new(nameof(roles), JsonSerializer.Serialize(roles), JsonClaimValueTypes.JsonArray)
             ];
 
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JwtOptions.Key));

@@ -34,7 +34,8 @@ namespace PrimeMarket.Services.Authentication
 
             if (result.Succeeded)
             {
-                var (token, expiresIn) = _jwtToken.GenerateJwtToken(user);
+                var roles = await _userManager.GetRolesAsync(user);
+                var (token, expiresIn) = _jwtToken.GenerateJwtToken(user, roles);
                 return Result.Success(new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn));
             }
 
@@ -90,7 +91,10 @@ namespace PrimeMarket.Services.Authentication
             var result = await _userManager.ConfirmEmailAsync(user, code);
 
             if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, DefaultRoles.Customer);
                 return Result.Success();
+            }
 
             var error = result.Errors.First();
 
