@@ -42,5 +42,19 @@ namespace PrimeMarket.Controllers
 
             return result.IsSuccess ? Ok() : result.ToProblem();
         }
+        [HttpPost("ForgetPassword-Confirm")]
+        public async Task<IActionResult> ForgetPasswordConfirm([FromBody] ForgetPasswordRequest request)
+        {
+            var result = await _authService.ForgetPasswordConfirmAsync(request.Email);
+
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] MyResetPasswordRequest request)
+        {
+            var result = await _authService.ResetPasswordAsync(request);
+
+            return result.IsSuccess ? Ok() : result.ToProblem();
+        }
     }
 }

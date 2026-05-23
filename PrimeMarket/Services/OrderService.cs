@@ -1,7 +1,10 @@
-﻿using PrimeMarket.Contracts.Orders;
+﻿using PrimeMarket.Contracts;
+using PrimeMarket.Contracts.Common;
+using PrimeMarket.Contracts.Orders;
 using PrimeMarket.Contracts.PromoCodes;
 using PrimeMarket.Errors;
 using Stripe;
+using PrimeMarket.Helpers;
 
 namespace PrimeMarket.Services;
 
@@ -161,5 +164,98 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
                 i.UnitPrice * i.Quantity
             )).ToList()
         ));
+    // -----------------------------------------------------------------------
+
+    public async Task<PaginationList<SellerOrderResponse>> GetSellerOrdersAsync(
+        string sellerId,
+        RequestFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Orders
+            .Where(o => o.Items.Any(i => i.Product.SellerId == sellerId))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
+        {
+            var search = filter.SearchValue.Trim().ToLower();
+
+            query = query.Where(o =>
+                o.User.FirstName.ToLower().Contains(search) ||
+                o.User.LastName.ToLower().Contains(search) ||
+                o.Id.ToString().Contains(search));
+        }
+
+        var isDesc = filter.SortDirection.Equals(
+            "DESC",
+            StringComparison.OrdinalIgnoreCase);
+
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "amount" => isDesc
+                ? query.OrderByDescending(o => o.TotalAmount)
+                : query.OrderBy(o => o.TotalAmount),
+
+            "status" => isDesc
+                ? query.OrderByDescending(o => o.Status)
+                : query.OrderBy(o => o.Status),
+
+            "customer" => isDesc
+                ? query.OrderByDescending(o => o.User.FirstName)
+                : query.OrderBy(o => o.User.FirstName),
+
+            _ => isDesc
+                ? query.OrderByDescending(o => o.CreatedOn)
+                : query.OrderBy(o => o.CreatedOn)
+        };
+
+        var projected = OrderExtension.MapSellerOrders(query, sellerId);
+
+        return await PaginationList<SellerOrderResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    public async Task<Result<SellerOrderResponse>> GetSellerOrderByIdAsync(
+        string sellerId,
+        int orderId)
+    {
+        var query = _context.Orders
+            .Where(o =>
+                o.Id == orderId &&
+                o.Items.Any(i => i.Product.SellerId == sellerId));
+
+        var order = await OrderExtension.MapSellerOrders(query, sellerId)
+            .FirstOrDefaultAsync();
+
+        if (order is null)
+            return Result.Failure<SellerOrderResponse>(
+                OrderError.OrderNotFound);
+
+        return Result.Success(order);
+    }
+
+    // -----------------------------------------------------------------------
+    public async Task<Result> UpdateOrderStatusAsync(string sellerId, int orderId, OrderStatus newStatus)
+    {
+        var order = await _context.Orders
+        .Include(o => o.Items)
+            .ThenInclude(i => i.Product)
+        .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order is null)
+            return Result.Failure(OrderError.OrderNotFound);
+
+        var isSellerOwner = order.Items.Any(i => i.Product.SellerId == sellerId);
+
+        if (!isSellerOwner)
+            return Result.Failure(OrderError.UnauthorizedAction);
+
+        order.Status = newStatus;
+        await _context.SaveChangesAsync();
+
+        return Result.Success();
     }
 }
