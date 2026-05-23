@@ -3,6 +3,7 @@ using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Orders;
 using PrimeMarket.Contracts.PromoCodes;
 using PrimeMarket.Errors;
+using Stripe;
 using PrimeMarket.Helpers;
 
 namespace PrimeMarket.Services;
@@ -24,7 +25,7 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         if (promo is null)
             return Result.Success(new PromoCodeValidationResponse(false, 0, "Invalid or expired promo code."));
 
-        var discount = promo.DiscountType == DiscountType.Percent
+        var discount = promo.DiscountType == DiscountType.Percentage
             ? cartTotal * (promo.DiscountValue / 100)
             : promo.DiscountValue;
 
@@ -68,7 +69,7 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
             if (promo is null)
                 return Result.Failure<PlaceOrderResponse>(OrderError.InvalidPromoCode);
 
-            discountAmount = promo.DiscountType == DiscountType.Percent
+            discountAmount = promo.DiscountType == DiscountType.Percentage
                 ? subtotal * (promo.DiscountValue / 100)
                 : promo.DiscountValue;
 
@@ -99,26 +100,27 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         // 5. handle Stripe payment intent
         string? clientSecret = null;
 
-        //if (request.PaymentMethod == PaymentType.Card)
-        //{
-        //    StripeConfiguration.ApiKey = config["Stripe:SecretKey"];
-
-        //    var options = new PaymentIntentCreateOptions
-        //    {
-        //        Amount = (long)(totalAmount * 100),
-        //        Currency = "usd",
-        //        Metadata = new Dictionary<string, string>
-        //        {
-        //            { "UserId", userId }
-        //        }
-        //    };
-
-        //    var service = new PaymentIntentService();
-        //    var intent = await service.CreateAsync(options);
-
-        //    clientSecret = intent.ClientSecret;
-        //    order.PaymentRef = intent.Id;
-        //}
+        if (request.PaymentMethod == PaymentType.CreditCard)
+        {
+            try
+            {
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = (long)(totalAmount * 100),
+                    Currency = "egp",
+                    Metadata = new Dictionary<string, string> { { "UserId", userId } }
+                };
+                var service = new PaymentIntentService();
+                var intent = await service.CreateAsync(options);
+                clientSecret = intent.ClientSecret;
+                order.PaymentRef = intent.Id;
+            }
+            catch (StripeException ex)
+            {
+                return Result.Failure<PlaceOrderResponse>(
+                    new Error("Payment.Failed", ex.Message,StatusCodes.Status400BadRequest));
+            }
+        }
 
         // 6. clear cart
         _context.CartItems.RemoveRange(cartItems);
@@ -133,7 +135,35 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         ));
     }
 
+    public async Task<Result<GetOrderResponse>> GetOrderByIdAsync(string userId, string id)
+    {
+        if (!int.TryParse(id, out var orderId))
+            return Result.Failure<GetOrderResponse>(OrderError.NotFound);
 
+        var order = await _context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p.Images)
+            .Include(o => o.Address)
+            .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+
+        if (order is null)
+            return Result.Failure<GetOrderResponse>(OrderError.NotFound);
+
+        return Result.Success(new GetOrderResponse(
+            order.Id,
+            order.TotalAmount,
+            order.DiscountAmount,
+            $"{order.Address.Street}, {order.Address.City}, {order.Address.Country}",
+            order.CreatedOn.AddDays(7),
+            order.Items.Select(i => new OrderItemResponse(
+                i.Id,
+                i.Product.Name,
+                i.Product.Images.FirstOrDefault()?.Url ?? "",
+                i.Quantity,
+                i.UnitPrice * i.Quantity
+            )).ToList()
+        ));
     // -----------------------------------------------------------------------
 
     public async Task<PaginationList<SellerOrderResponse>> GetSellerOrdersAsync(
