@@ -30,7 +30,10 @@ namespace PrimeMarket.Services.Authentication
             if (user == null)
                 return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-            var result = await _signInManager.PasswordSignInAsync(user, password, false, false);
+            if (user.IsDisabled)
+                return Result.Failure<AuthResponse>(UserErrors.DisabledUser);
+
+            var result = await _signInManager.PasswordSignInAsync(user, password, false, true);
 
             if (result.Succeeded)
             {
@@ -39,7 +42,11 @@ namespace PrimeMarket.Services.Authentication
                 return Result.Success(new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn));
             }
 
-            return Result.Failure<AuthResponse>(result.IsNotAllowed ? UserErrors.EmailNotConfirmed : UserErrors.InvalidCredentials);
+            var error = result.IsNotAllowed ? UserErrors.EmailNotConfirmed
+                        : result.IsLockedOut ? UserErrors.LockedUser
+                        : UserErrors.InvalidCredentials;
+
+            return Result.Failure<AuthResponse>(error);
         }
 
         public async Task<Result> RegisterAsync(RegisterReq registerReq, CancellationToken cancellationToken)
