@@ -7,6 +7,7 @@
         DateTime OrderDate,
         OrderStatus Status,
         decimal TotalAmount,
+        string PaymentMethod,
         IReadOnlyList<SellerOrderItemResponse> Items
     );
 }

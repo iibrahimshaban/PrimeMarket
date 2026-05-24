@@ -15,6 +15,7 @@ namespace PrimeMarket.Helpers
                 o.Items
                     .Where(i => i.Product.SellerId == sellerId)
                     .Sum(i => i.UnitPrice * i.Quantity),
+                o.PaymentMethod.ToString(),
                 o.Items
                     .Where(i => i.Product.SellerId == sellerId)
                     .Select(i => new SellerOrderItemResponse(
