@@ -74,6 +74,7 @@ public static class DependancyInjection
         services.AddScoped<IEmailSender, EmailService>();
         services.AddSingleton<IJwtProvider, JwtProvider>();
         services.AddScoped<IUserProfileService, UserProfileService>();
+        services.AddScoped<IUserservice, Userservice>();
 
         services.AddOptions<JwtOptions>()
                 .BindConfiguration(JwtOptions.SectionName)

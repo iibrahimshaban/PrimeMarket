@@ -22,5 +22,17 @@
 
         public static readonly Error DuplicatedConfirmation =
             new("User.DuplicatedConfirmation", "Email already confirmed", StatusCodes.Status400BadRequest);
+
+        public static readonly Error DisabledUser =
+            new("User.DisabledUser", "Disabled user, Please contact the support team.", StatusCodes.Status400BadRequest);
+
+        public static readonly Error LockedUser =
+            new("User.LockedUser", "Locked user, Please Wait and try again.", StatusCodes.Status400BadRequest);
+
+        public static readonly Error UserNotFound =
+            new("User.UserNotFound", "User NotFound.", StatusCodes.Status400BadRequest);
+
+        public static readonly Error InvalidRoles =
+            new("Role.InvalidRoles", "Invalid roles", StatusCodes.Status400BadRequest);
     }
 }
