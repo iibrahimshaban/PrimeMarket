@@ -110,7 +110,8 @@ public class ProductMappingConfig : IRegister
 
                 src.ProductCategories
                     .Select(pc => pc.Category.Name)
-                    .ToList()
+                    .ToList(),
+                src.CreatedOn
             ));
     }
 }

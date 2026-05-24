@@ -120,11 +120,11 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
                 : query.OrderBy(
                     p => p.Reviews.Average(r => (double?)r.Rating) ?? 0),
 
-            _ => query
-                .OrderByDescending(
-                    p => p.OrderItems.Sum(oi => (int?)oi.Quantity) ?? 0)
-                .ThenByDescending(
-                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+            "createdon" => isDesc
+                ? query.OrderByDescending(p => p.CreatedOn)
+                : query.OrderBy(p => p.CreatedOn),
+
+            _ => query.OrderByDescending(p => p.CreatedOn)
         };
 
         var projected = query.ProjectToType<SellerProductResponse>();

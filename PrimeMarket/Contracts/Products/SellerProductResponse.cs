@@ -9,6 +9,7 @@
      string? PrimaryImageUrl,
      double AverageRating,
      int ReviewCount,
-     IReadOnlyList<string> Categories
+     IReadOnlyList<string> Categories,
+     DateTime CreatedAt
     );
 }
