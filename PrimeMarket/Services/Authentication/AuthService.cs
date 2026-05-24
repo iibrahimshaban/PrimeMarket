@@ -144,7 +144,7 @@ namespace PrimeMarket.Services.Authentication
 
         public async Task<Result> ResetPasswordAsync(MyResetPasswordRequest request)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await _userManager.FindByIdAsync(request.UserId);
 
             if (user is null || !user.EmailConfirmed)
                 return Result.Failure(UserErrors.InvalidCode);

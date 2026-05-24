@@ -1,7 +1,7 @@
 ﻿namespace PrimeMarket.Contracts.Authentication
 {
     public record MyResetPasswordRequest(
-        string Email,
+        string UserId,
         string Code,
         string NewPassword
     );
