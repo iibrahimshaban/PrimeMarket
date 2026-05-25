@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using PrimeMarket.Errors;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -35,6 +36,34 @@ namespace PrimeMarket.Authentication
 
             return (token: new JwtSecurityTokenHandler().WriteToken(token), 
                     expiresIn: _JwtOptions.ExpiryMinutes * 60);
+        }
+        public Result<string> ValidateToken(string Token)
+        {
+            var TokenHandler = new JwtSecurityTokenHandler();
+            var SynmmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JwtOptions.Key));
+
+            try
+            {
+                TokenHandler.ValidateToken(Token, new TokenValidationParameters
+                {
+                    IssuerSigningKey = SynmmetricKey,
+                    ValidateIssuerSigningKey = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                var jwtToken = (JwtSecurityToken)validatedToken;
+
+                var userId = jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value;
+
+                return Result.Success(userId);
+
+            }
+            catch
+            {
+                return Result.Failure<string>(UserErrors.InvalidJwtToken);
+            }
         }
     }
 }

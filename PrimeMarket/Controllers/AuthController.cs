@@ -27,8 +27,22 @@ namespace PrimeMarket.Controllers
 
             return Result.IsSuccess ? Ok() : Result.ToProblem();
         }
+        [HttpPost("new-refresh")]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = await _authService.GetRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
+
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        }
+        [HttpPost("revoke-refresh-token")]
+        public async Task<IActionResult> RevokeRefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = await _authService.RevokeRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
+
+            return result.IsSuccess ? NoContent() : result.ToProblem();
+        }
         [HttpPost("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request, CancellationToken cancellationToken = default)
         {
             var result = await _authService.ConfirmEmailAsync(request);
 

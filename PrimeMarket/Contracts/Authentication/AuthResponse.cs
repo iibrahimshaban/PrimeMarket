@@ -7,6 +7,8 @@
         string LastName,
         string Token,
         int ExpiresIn,
-        string ProfilePictureUrl = ""
+        string RefreshToken,
+        DateTime RefreshTokenExpirationdate,
+        string ProfilePictureUrl = ""   
     );
 }

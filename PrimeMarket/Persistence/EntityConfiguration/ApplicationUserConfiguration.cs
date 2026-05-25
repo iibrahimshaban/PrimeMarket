@@ -10,6 +10,11 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
 
         builder.Property(x => x.ProfilePictureUrl).HasMaxLength(300);
 
+        builder.OwnsMany(x => x.RefreshTokens)
+            .ToTable("RefreshTokens")
+            .WithOwner()
+            .HasForeignKey("UserId");
+
         builder.HasData(new ApplicationUser
         {
             Id = DefaultUsers.UserId,
