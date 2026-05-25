@@ -134,6 +134,7 @@ public static class DependancyInjection
         services.AddScoped<ICartService, CartService>();
         services.AddScoped<IAddressService, AddressService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IPromoCodeService, PromoCodeService>();
 
         return services;
     }
