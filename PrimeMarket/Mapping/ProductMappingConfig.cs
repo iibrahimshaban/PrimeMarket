@@ -113,5 +113,30 @@ public class ProductMappingConfig : IRegister
                     .ToList(),
                 src.CreatedOn
             ));
+        config.NewConfig<Product, AdminProductResponse>()
+            .ConstructUsing(src => new AdminProductResponse(
+                src.Id,
+                src.Name,
+                src.Price,
+                src.Stock,
+                src.IsActive,
+
+                src.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.Url)
+                    .FirstOrDefault(),
+
+                src.Reviews.Any()
+                    ? Math.Round(src.Reviews.Average(r => r.Rating), 1)
+                    : 0,
+
+                src.Reviews.Count,
+
+                src.ProductCategories
+                    .Select(pc => pc.Category.Name)
+                    .ToList(),
+                src.Seller.UserName!,
+                src.CreatedOn
+            ));
     }
 }
