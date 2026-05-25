@@ -1,4 +1,5 @@
 ﻿using SurveyBasket.Contracts.Users;
+using PrimeMarket.Contracts.Authentication;
 
 namespace SurveyBasket.Mapping;
 
@@ -18,5 +19,12 @@ public class MappingConfigurations : IRegister
         config.NewConfig<UpdateUserRequest, ApplicationUser>()
             .Map(dest => dest.UserName, src => src.Email)
             .Map(dest => dest.NormalizedUserName, src => src.Email.ToUpper());
+
+        config.NewConfig<ApplicationUser, AuthResponse>()
+            .Map(dest => dest.Id, src => src.Id)
+            .Map(dest => dest.Email, src => src.Email)
+            .Map(dest => dest.FirstName, src => src.FirstName)
+            .Map(dest => dest.LastName, src => src.LastName)
+            .Map(dest => dest.ProfilePictureUrl, src => src.ProfilePictureUrl);
     }
 }
