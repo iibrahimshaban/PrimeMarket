@@ -9,7 +9,7 @@ public record ProductDetailCustomerResponse(
     string SellerName,
     string? PrimaryImageUrl,
     List<string> ImageUrls,
-    string? CategoryName,
+    List<string> Categories,
     double AverageRating,
     int ReviewCount,
     List<ProductReviewResponse> Reviews
