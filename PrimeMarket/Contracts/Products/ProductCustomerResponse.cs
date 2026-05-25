@@ -6,7 +6,7 @@ public record ProductCustomerResponse(
     decimal Price,
     bool InStock,
     string? PrimaryImageUrl,
-    string? CategoryName,
+    List<string> Categories,
     double AverageRating,
     int ReviewCount
 );

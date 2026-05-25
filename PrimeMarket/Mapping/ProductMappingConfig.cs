@@ -60,7 +60,7 @@ public class ProductMappingConfig : IRegister
                 src.Images.FirstOrDefault(i => i.IsPrimary) != null
                     ? src.Images.First(i => i.IsPrimary).Url
                     : null,
-                src.ProductCategories.Select(pc => pc.Category.Name).FirstOrDefault(),
+                src.ProductCategories.Select(pc => pc.Category.Name).ToList(),
                 src.Reviews.Any() ? Math.Round(src.Reviews.Average(r => r.Rating), 1) : 0,
                 src.Reviews.Count
             ));
@@ -76,12 +76,12 @@ public class ProductMappingConfig : IRegister
                 src.Description,
                 src.Price,
                 src.Stock,
-                src.Seller.FirstName + " " + src.Seller.LastName,
+                src.Seller.Brand.BrandName,
                 src.Images.FirstOrDefault(i => i.IsPrimary) != null
                     ? src.Images.First(i => i.IsPrimary).Url
                     : null,
                 src.Images.Select(i => i.Url).ToList(),
-                src.ProductCategories.Select(pc => pc.Category.Name).FirstOrDefault(),
+                src.ProductCategories.Select(pc => pc.Category.Name).ToList(),
                 src.Reviews.Any()
                     ? Math.Round(src.Reviews.Average(r => r.Rating), 1)
                     : 0,

@@ -141,7 +141,7 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     {
         var product = await _context.Products
             .Where(p => p.Id == id && p.IsActive)
-            .Include(p => p.Seller)
+            .Include(p => p.Seller).ThenInclude(x => x.Brand)
             .Include(p => p.Images)
             .Include(p => p.Reviews)
                 .ThenInclude(r => r.User)
