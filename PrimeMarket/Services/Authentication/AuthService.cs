@@ -39,7 +39,7 @@ namespace PrimeMarket.Services.Authentication
             {
                 var roles = await _userManager.GetRolesAsync(user);
                 var (token, expiresIn) = _jwtToken.GenerateJwtToken(user, roles);
-                return Result.Success(new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn));
+                return Result.Success(new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn, user.ProfilePictureUrl));
             }
 
             var error = result.IsNotAllowed ? UserErrors.EmailNotConfirmed

@@ -34,5 +34,13 @@ namespace PrimeMarket.Controllers
 
             return result.IsSuccess ? NoContent() : result.ToProblem();
         }
+
+        [HttpPost("Profile-Image")]
+        public async Task<IActionResult> UploadProfileImage([FromForm] UploadUserProfileImageRequest request)
+        {
+            var result = await _userProfile.UploadUserProfileImageAsync(User.GetUserId()!, request.Image);
+
+            return result.IsSuccess ? Ok(new { imageUrl = result.Value }) : result.ToProblem();
+        }
     }
 }
