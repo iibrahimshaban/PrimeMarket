@@ -19,7 +19,6 @@ namespace PrimeMarket.Services.Authentication
               on u.Id equals ur.UserId
               join r in _context.Roles
               on ur.RoleId equals r.Id into roles
-              where !roles.Any(x => x.Name == DefaultRoles.Admin)
               select new
               {
                   u.Id,
