@@ -8,9 +8,6 @@
         public static readonly Error InvalidJwtToken =
             new("User.InvalidJwtToken", "Invalid Jwt token", StatusCodes.Status401Unauthorized);
 
-        public static readonly Error InvalidRefreshToken =
-            new("User.InvalidRefreshToken", "Invalid refresh token", StatusCodes.Status401Unauthorized);
-
         public static readonly Error DuplicatedEmail =
             new("User.DuplicatedEmail", "This Email already Exists", StatusCodes.Status409Conflict);
 
@@ -34,5 +31,14 @@
 
         public static readonly Error InvalidRoles =
             new("Role.InvalidRoles", "Invalid roles", StatusCodes.Status400BadRequest);
+
+        public static readonly Error Invalid = new(
+            "User.invalid", "wrong name and password", StatusCodes.Status400BadRequest);
+        public static readonly Error NotFound = new(
+            "User.invalid", "wrong name and password", StatusCodes.Status404NotFound);
+        public static readonly Error ExpiredToken = new(
+            "User.ExpiredToken", "this token is not working any more", StatusCodes.Status400BadRequest);
+        public static readonly Error InvalidRefresh = new(
+            "User.InvalidRefreshToken", "can't generate a new refresh token", StatusCodes.Status400BadRequest);
     }
 }

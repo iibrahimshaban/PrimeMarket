@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Filters\**" />
+    <Content Remove="Filters\**" />
+    <EmbeddedResource Remove="Filters\**" />
+    <None Remove="Filters\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CloudinaryDotNet" Version="1.29.1" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="MailKit" Version="4.16.0" />
@@ -27,10 +34,6 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Stripe.net" Version="51.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Filters\" />
   </ItemGroup>
 
 </Project>

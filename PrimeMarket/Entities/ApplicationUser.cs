@@ -17,4 +17,6 @@ public class ApplicationUser : IdentityUser
     public ICollection<Wishlist> Wishlists { get; set; } = [];
     public ICollection<Product> Products { get; set; } = [];
     public ICollection<PromoCode> PromoCodes { get; set; } = [];
+    public Brand Brand { get; set; } = null!;
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }
