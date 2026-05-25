@@ -57,6 +57,21 @@ public class OrdersController(IOrderService orderService) : ControllerBase
         return Ok(result);
     }
 
+    // -----------------------------------------------------------------------
+
+    [HttpGet("admin")]
+    [Authorize]
+    public async Task<IActionResult> GetAdminOrders(
+        [FromQuery] RequestFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var result = await orderService.GetAdminOrdersAsync(
+            filter,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
 
     // -----------------------------------------------------------------------
 

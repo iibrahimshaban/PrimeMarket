@@ -1,10 +1,11 @@
 ﻿using PrimeMarket.Contracts;
 using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Orders;
+using PrimeMarket.Contracts.Products;
 using PrimeMarket.Contracts.PromoCodes;
 using PrimeMarket.Errors;
-using Stripe;
 using PrimeMarket.Helpers;
+using Stripe;
 
 namespace PrimeMarket.Services;
 
@@ -212,6 +213,56 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         var projected = OrderExtension.MapSellerOrders(query, sellerId);
 
         return await PaginationList<SellerOrderResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
+    }
+
+    // -----------------------------------------------------------------------
+
+    public async Task<PaginationList<AdminOrderResponse>> GetAdminOrdersAsync(
+        RequestFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Orders.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
+        {
+            var search = filter.SearchValue.Trim().ToLower();
+
+            query = query.Where(o =>
+                o.User.FirstName.ToLower().Contains(search) ||
+                o.User.LastName.ToLower().Contains(search) ||
+                o.Id.ToString().Contains(search));
+        }
+
+        var isDesc = filter.SortDirection.Equals(
+            "DESC",
+            StringComparison.OrdinalIgnoreCase);
+
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "amount" => isDesc
+                ? query.OrderByDescending(o => o.TotalAmount)
+                : query.OrderBy(o => o.TotalAmount),
+
+            "status" => isDesc
+                ? query.OrderByDescending(o => o.Status)
+                : query.OrderBy(o => o.Status),
+
+            "customer" => isDesc
+                ? query.OrderByDescending(o => o.User.FirstName)
+                : query.OrderBy(o => o.User.FirstName),
+
+            _ => isDesc
+                ? query.OrderByDescending(o => o.CreatedOn)
+                : query.OrderBy(o => o.CreatedOn)
+        };
+
+        var projected = query.ProjectToType<AdminOrderResponse>();
+
+        return await PaginationList<AdminOrderResponse>.CreateAsync(
             projected,
             filter.PageNumber,
             filter.PageSize
