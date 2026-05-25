@@ -35,6 +35,17 @@ public class ProductsController(IProductService _productService) : ControllerBas
 
     // -----------------------------------------------------------------------
 
+    [HttpGet("admin")]
+    [Authorize]
+    public async Task<IActionResult> GetAdminProducts([FromQuery] RequestFilter requestFilter,CancellationToken cancellationToken)
+    {
+        var products = await productService.GetAdminProductsAsync(requestFilter, cancellationToken);
+
+        return Ok(products);
+    }
+
+    // -----------------------------------------------------------------------
+
     [HttpGet("details/{id:int}")]
     public async Task<IActionResult> GetCustomerProduct(int id)
     {
@@ -95,8 +106,12 @@ public class ProductsController(IProductService _productService) : ControllerBas
     [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await productService.DeleteProductAsync(id, sellerId!);
+        string? sellerId = null;
+        if (User.IsInRole("Seller"))
+        {
+            sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+        var result = await productService.DeleteProductAsync(id, sellerId);
 
         return result.IsSuccess
             ? NoContent()

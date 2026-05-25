@@ -135,6 +135,60 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
             filter.PageSize
         );
     }
+    //-----------------------------------------------------------------------------
+    public async Task<PaginationList<AdminProductResponse>> GetAdminProductsAsync(
+        RequestFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Products.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
+        {
+            var search = filter.SearchValue.Trim().ToLower();
+
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(search));
+        }
+
+        var isDesc = filter.SortDirection.Equals(
+            "DESC",
+            StringComparison.OrdinalIgnoreCase);
+
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "name" => isDesc
+                ? query.OrderByDescending(p => p.Name)
+                : query.OrderBy(p => p.Name),
+
+            "price" => isDesc
+                ? query.OrderByDescending(p => p.Price)
+                : query.OrderBy(p => p.Price),
+
+            "stock" => isDesc
+                ? query.OrderByDescending(p => p.Stock)
+                : query.OrderBy(p => p.Stock),
+
+            "rating" => isDesc
+                ? query.OrderByDescending(
+                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0)
+                : query.OrderBy(
+                    p => p.Reviews.Average(r => (double?)r.Rating) ?? 0),
+
+            "createdon" => isDesc
+                ? query.OrderByDescending(p => p.CreatedOn)
+                : query.OrderBy(p => p.CreatedOn),
+
+            _ => query.OrderByDescending(p => p.CreatedOn)
+        };
+
+        var projected = query.ProjectToType<AdminProductResponse>();
+
+        return await PaginationList<AdminProductResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
+    }
     //---------------------------------------------------------------------------------------------------
 
     public async Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id)
@@ -269,7 +323,7 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     }
 
     //---------------------------------------------------------------------------------------------------
-    public async Task<Result> DeleteProductAsync(int id, string sellerId)
+    public async Task<Result> DeleteProductAsync(int id, string? sellerId)
     {
         var product = await _context.Products
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -277,7 +331,7 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
         if (product is null)
             return Result.Failure(ProductError.ProductNotFound);
 
-        if (product.SellerId != sellerId)
+        if (sellerId is not null && product.SellerId != sellerId)
             return Result.Failure(ProductError.UnauthorizedAction);
 
         product.IsActive = false;
