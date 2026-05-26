@@ -6,11 +6,13 @@ public record ProductDetailCustomerResponse(
     string? Description,
     decimal Price,
     int Stock,
-    string SellerName,
-    string? PrimaryImageUrl,
-    List<string> ImageUrls,
-    List<string> Categories,
+    string BrandName,
+    string ShopName,
+    int ShopId,
+    string PrimaryImageUrl,
+    ICollection<string> ImageUrls,
+    ICollection<string> Categories,
     double AverageRating,
     int ReviewCount,
-    List<ProductReviewResponse> Reviews
+    ICollection<ProductReviewResponse> Reviews
 );

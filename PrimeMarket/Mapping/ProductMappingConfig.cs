@@ -76,7 +76,9 @@ public class ProductMappingConfig : IRegister
                 src.Description,
                 src.Price,
                 src.Stock,
+                src.BrandName!,
                 src.Seller.Brand.BrandName,
+                src.Seller.Brand.Id,
                 src.Images.FirstOrDefault(i => i.IsPrimary) != null
                     ? src.Images.First(i => i.IsPrimary).Url
                     : null,
