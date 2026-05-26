@@ -194,14 +194,30 @@ public class ProductService(ApplicationDbContext context, ICloudinaryService clo
     public async Task<Result<ProductDetailCustomerResponse>> GetProductByIdForCustomerAsync(int id)
     {
         var product = await _context.Products
-            .Where(p => p.Id == id && p.IsActive)
-            .Include(p => p.Seller).ThenInclude(x => x.Brand)
-            .Include(p => p.Images)
-            .Include(p => p.Reviews)
-                .ThenInclude(r => r.User)
-            .Include(p => p.ProductCategories)
-                .ThenInclude(pc => pc.Category)
-            .FirstOrDefaultAsync();
+        .Where(p => p.Id == id && p.IsActive)
+        .Select(p => new ProductDetailCustomerResponse(
+            p.Id,
+            p.Name,
+            p.Description,
+            p.Price,
+            p.Stock,
+            p.BrandName!,
+            p.Seller.Brand != null ? p.Seller.Brand.BrandName : null,
+            p.Seller.Brand != null ? p.Seller.Brand.Id : 0,
+            p.Images.Where(i => i.IsPrimary).Select(i => i.Url).FirstOrDefault(),
+            p.Images.Select(i => i.Url).ToList(),
+            p.ProductCategories.Select(pc => pc.Category.Name).ToList(),
+            p.Reviews.Any() ? Math.Round(p.Reviews.Average(r => r.Rating), 1) : 0,
+            p.Reviews.Count,
+            p.Reviews.Select(r => new ProductReviewResponse(
+                r.User.FirstName + " " + r.User.LastName,
+                r.User.ProfilePictureUrl,
+                r.Rating,
+                r.Comment,
+                r.CreatedAt
+            )).ToList()
+        ))
+        .FirstOrDefaultAsync();
 
         if (product is null)
             return Result.Failure<ProductDetailCustomerResponse>(ProductError.ProductNotFound);

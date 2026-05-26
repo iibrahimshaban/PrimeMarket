@@ -3,7 +3,7 @@
 public record ProductReviewResponse(
     string UserName,
     string? UserAvatar,
-    int Rating,
+    int? Rating,
     string? Comment,
     DateTime CreatedAt
  );

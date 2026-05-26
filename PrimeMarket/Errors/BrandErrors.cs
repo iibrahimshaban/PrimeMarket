@@ -6,4 +6,6 @@ public static class BrandErrors
         new Error("Brand.NotFound", "The specified brand was not found.",StatusCodes.Status404NotFound);
     public static Error AlreadyHasBrand =>
         new Error("Brand.AlreadyHasBrand", "this user is already a seller",StatusCodes.Status409Conflict);
+    public static Error Pending =>
+        new Error("Brand.Pending", "your seller request is still under study ",StatusCodes.Status400BadRequest);
 }

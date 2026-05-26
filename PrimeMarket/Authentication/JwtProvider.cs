@@ -19,7 +19,7 @@ namespace PrimeMarket.Authentication
                 new(JwtRegisteredClaimNames.FamilyName, user.LastName),
                 new(JwtRegisteredClaimNames.GivenName, user.FirstName),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(nameof(roles), JsonSerializer.Serialize(roles), JsonClaimValueTypes.JsonArray)
+               ..roles.Select(role => new Claim(ClaimTypes.Role, role))
             ];
 
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JwtOptions.Key));

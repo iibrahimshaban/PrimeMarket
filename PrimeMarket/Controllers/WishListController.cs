@@ -21,7 +21,7 @@ public class WishListController(IHttpContextAccessor httpContextAccessor, IWishL
         var userId = _httpContextAccessor.HttpContext!.User.GetUserId()!;
         var result = await _wishlistService.GetUserWishlistAsync(userId, ct);
 
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        return Ok(result); 
     }
     [HttpPost("{ProductId}")]
     public async Task<IActionResult> AddToWishlist([FromRoute]int productId, CancellationToken ct)

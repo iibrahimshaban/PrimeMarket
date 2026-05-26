@@ -85,6 +85,7 @@ namespace PrimeMarket.Services.Authentication
                 _logger.LogInformation("Confirmation code: {code}", code);
 
                 await SendConfirmationEmail(user, code);
+                await _userManager.AddToRoleAsync(user, DefaultRoles.Customer);
                 return Result.Success();
             }
 
@@ -116,7 +117,7 @@ namespace PrimeMarket.Services.Authentication
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, DefaultRoles.Customer);
+                
                 return Result.Success();
             }
 
