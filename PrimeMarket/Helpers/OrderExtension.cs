@@ -16,6 +16,11 @@ namespace PrimeMarket.Helpers
                     .Where(i => i.Product.SellerId == sellerId)
                     .Sum(i => i.UnitPrice * i.Quantity),
                 o.PaymentMethod.ToString(),
+                 new OrderAddressResponse(
+                    o.Address.Street,
+                    o.Address.City,
+                    o.Address.Country
+                ),
                 o.Items
                     .Where(i => i.Product.SellerId == sellerId)
                     .Select(i => new SellerOrderItemResponse(

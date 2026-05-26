@@ -8,6 +8,7 @@
         OrderStatus Status,
         decimal TotalAmount,
         string PaymentMethod,
+        OrderAddressResponse Address,
         IReadOnlyList<SellerOrderItemResponse> Items
     );
 }
