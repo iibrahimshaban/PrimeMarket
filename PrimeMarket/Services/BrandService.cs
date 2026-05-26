@@ -3,14 +3,15 @@
 
 namespace PrimeMarket.Services;
 
-public class BrandService(ApplicationDbContext context) : IBrandService
+public class BrandService(ApplicationDbContext context, ICloudinaryService cloudinaryService) : IBrandService
 {
     private readonly ApplicationDbContext _context = context;
+    private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
 
     public async Task<List<BrandResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
         return await _context.Brands
-            .Where(b => b.IsActive)
+            .Where(b => b.IsActive && b.IsVerified)
             .Select(b => new BrandResponse(
                 b.Id,
                 b.BrandName,
@@ -30,7 +31,8 @@ public class BrandService(ApplicationDbContext context) : IBrandService
 
     public async Task<Result<BrandDetailsResponse>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var brandExists = await _context.Brands.AnyAsync(b => b.Id == id, cancellationToken);
+        var brandExists = await _context.Brands.AnyAsync(b => b.Id == id && b.IsActive && b.IsVerified, cancellationToken);
+
         if (!brandExists)
             return Result.Failure<BrandDetailsResponse>(BrandErrors.BrandNotFound);
 
@@ -70,5 +72,34 @@ public class BrandService(ApplicationDbContext context) : IBrandService
             .FirstOrDefaultAsync(cancellationToken);
 
         return Result.Success(brand!);
+    }
+    public async Task<Result> BecomeSelerAsync(BecomeSelerRequest request, string userId, CancellationToken cancellationToken)
+    {
+        var alreadyHasBrand = await _context.Brands.AnyAsync(b => b.UserId == userId, cancellationToken);
+
+        if (alreadyHasBrand)
+            return Result.Failure(BrandErrors.AlreadyHasBrand);
+
+        var logoUrl = await _cloudinaryService.UploadImageAsync(request.Logo, "brands",userId);
+
+        var brand = new Brand
+        {
+            BrandName = request.BrandName,
+            Description = request.Description,
+            LogoUrl = logoUrl,
+            Street = request.Street,
+            City = request.City,
+            Country = request.Country,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            IsActive = true,
+            IsVerified = false,
+            UserId = userId
+        };
+
+        await _context.Brands.AddAsync(brand, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }
