@@ -39,6 +39,11 @@ public class MappingConfigurations : IRegister
                 o.Items
                     .Sum(i => i.UnitPrice * i.Quantity),
                 o.PaymentMethod.ToString(),
+                new OrderAddressResponse(
+                    o.Address.Street,
+                    o.Address.City,
+                    o.Address.Country
+                ),
                 o.Items
                     .Select(i => new AdminOrderItemResponse(
                         i.ProductId,
