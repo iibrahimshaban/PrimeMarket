@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PrimeMarket.Contracts.Brand;
+using PrimeMarket.Helpers;
 using PrimeMarket.Services;
+using System.Security.Claims;
 
 namespace PrimeMarket.Controllers;
 
@@ -23,5 +27,14 @@ public class BrandsController(IBrandService brandService) : ControllerBase
         var result = await _brandService.GetByIdAsync(id, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+    [HttpPost("register")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> BecomeSeller([FromForm] BecomeSelerRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId()!;
+        var result = await _brandService.BecomeSelerAsync(request, userId, cancellationToken);
+        return result.IsSuccess ? Ok() : result.ToProblem();
     }
 }
