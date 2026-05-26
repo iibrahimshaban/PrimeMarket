@@ -5,6 +5,7 @@ public record ProductResponse(
     string Name,
     string? Description,
     decimal Price,
+    string? BrandName,
     bool InStock,
     string Thumbnail,
     IReadOnlyList<ProductImageResponse> Images,

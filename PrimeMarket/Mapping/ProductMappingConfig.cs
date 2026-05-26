@@ -96,6 +96,7 @@ public class ProductMappingConfig : IRegister
                 src.Id,
                 src.Name,
                 src.Price,
+                src.BrandName,
                 src.Stock,
                 src.IsActive,
 

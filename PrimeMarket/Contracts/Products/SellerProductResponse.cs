@@ -4,6 +4,7 @@
      int Id,
      string Name,
      decimal Price,
+     string? BrandName,
      int Stock,
      bool IsActive,
      string? PrimaryImageUrl,
