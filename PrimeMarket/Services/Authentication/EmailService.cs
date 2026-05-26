@@ -29,6 +29,7 @@ namespace PrimeMarket.Services.Authentication
 
             using var smtp = new SmtpClient();
 
+            smtp.CheckCertificateRevocation = false;
 
             smtp.Connect(_mailSettings.Host, _mailSettings.Port, SecureSocketOptions.StartTls);
             smtp.Authenticate(_mailSettings.Mail, _mailSettings.Password);

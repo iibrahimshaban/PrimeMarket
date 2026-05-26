@@ -33,7 +33,7 @@ public class WishListService(ApplicationDbContext context) : IWishListService
         return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<WishlistItemResponse>>> GetUserWishlistAsync(string userId, CancellationToken ct)
+    public async Task<IEnumerable<WishlistItemResponse>> GetUserWishlistAsync(string userId, CancellationToken ct)
     {
         var Wish = await _context.Wishlists
             .Where(w => w.UserId == userId)
@@ -52,10 +52,7 @@ public class WishListService(ApplicationDbContext context) : IWishListService
             ))
             .ToListAsync(ct);
 
-        if (Wish == null || !Wish.Any())
-            return Result.Failure<IEnumerable<WishlistItemResponse>>(WishListErrors.WishNotFound);
-
-        return Result.Success<IEnumerable<WishlistItemResponse>>(Wish);
+        return Wish;
     }
 
     public async Task<Result> RemoveFromWishListAsync(int productId, string userId, CancellationToken ct)

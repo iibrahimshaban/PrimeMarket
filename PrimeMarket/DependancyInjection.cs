@@ -41,7 +41,11 @@ public static class DependancyInjection
 
         services.Configure<IdentityOptions>(options =>
         {
-            options.Password.RequiredLength = 8;
+            options.Password.RequiredLength = 1;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
             options.SignIn.RequireConfirmedEmail = true;
             options.User.RequireUniqueEmail = true;
         });
@@ -101,15 +105,27 @@ public static class DependancyInjection
                 ValidIssuer = settings?.Issuer,
                 ValidAudience = settings?.Audience
             };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnChallenge = async context =>
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    var response = new { Errors = new[] { "Auth.Unauthorized", "You are not authorized, please login first." } };
+                    await context.Response.WriteAsJsonAsync(response);
+                },
+                OnForbidden = async context =>
+                {
+                    context.Response.StatusCode = 403;
+                    context.Response.ContentType = "application/json";
+                    var response = new { Errors = new[] { "Auth.Forbidden", "You do not have permission to access this resource." } };
+                    await context.Response.WriteAsJsonAsync(response);
+                }
+            };
         });
 
-
-        services.Configure<IdentityOptions>(options =>
-        {
-            options.Password.RequiredLength = 6;
-            options.SignIn.RequireConfirmedEmail = true;
-            options.User.RequireUniqueEmail = true;
-        });
 
         services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
         services.AddHttpContextAccessor();
@@ -136,6 +152,7 @@ public static class DependancyInjection
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPromoCodeService, PromoCodeService>();
         services.AddScoped<IBrandService, BrandService>();
+        services.AddScoped<IReviewService, ReviewService>();
 
         return services;
     }

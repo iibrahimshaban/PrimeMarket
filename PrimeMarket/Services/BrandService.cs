@@ -102,4 +102,54 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
 
         return Result.Success();
     }
+    public async Task<Result> GetStatusAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var brand = await _context.Brands.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+
+        if (brand == null)
+            return Result.Success();
+
+        if (!brand.IsVerified)
+            return Result.Failure(BrandErrors.Pending);
+
+        return Result.Failure(BrandErrors.AlreadyHasBrand);
+    }
+    public async Task<IEnumerable<BecomeSellerResponse>> GetAllSellerRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        var sellerRequests = await _context.Brands
+            .Where(b => !b.IsVerified)
+            .Select(b => new BecomeSellerResponse(
+                b.UserId,
+                b.BrandName,
+                b.Description,
+                b.LogoUrl,
+                $"{b.Street}, {b.City}, {b.Country}"
+            ))
+            .ToListAsync(cancellationToken);
+
+        return sellerRequests;
+    }
+    public async Task<Result> ApproveSellerRequestAsync(int brandId, CancellationToken cancellationToken = default)
+    {
+        var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Id == brandId && !b.IsVerified, cancellationToken);
+
+        if (brand == null)
+            return Result.Failure(BrandErrors.BrandNotFound);
+
+        brand.IsVerified = true;
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result> RejectSellerRequestAsync(int brandId, CancellationToken cancellationToken = default)
+    {
+        var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Id == brandId && !b.IsVerified, cancellationToken);
+
+        if (brand == null)
+            return Result.Failure(BrandErrors.BrandNotFound);
+
+        _context.Brands.Remove(brand);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
 }
