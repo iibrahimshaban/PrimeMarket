@@ -4,8 +4,6 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)
     {
-        // One review per user per product
-        builder.HasIndex(x => new { x.UserId, x.ProductId }).IsUnique();
 
         builder.Property(x => x.Rating).IsRequired();
 
