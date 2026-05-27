@@ -1,8 +1,7 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using MimeKit;
-using SurveyBasket.Settings;
+﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using MailSettings = SurveyBasket.Settings.MailSettings;
 
 namespace PrimeMarket.Services.Authentication
 {
@@ -12,29 +11,18 @@ namespace PrimeMarket.Services.Authentication
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            var message = new MimeMessage
+            var client = new SendGridClient(_mailSettings.Password);
+
+            var msg = new SendGridMessage
             {
-                Sender = MailboxAddress.Parse(_mailSettings.Mail),
-                Subject = subject
+                From = new EmailAddress(_mailSettings.Mail, _mailSettings.DisplayName),
+                Subject = subject,
+                HtmlContent = htmlMessage
             };
 
-            message.To.Add(MailboxAddress.Parse(email));
+            msg.AddTo(new EmailAddress(email));
 
-            var builder = new BodyBuilder
-            {
-                HtmlBody = htmlMessage
-            };
-
-            message.Body = builder.ToMessageBody();
-
-            using var smtp = new SmtpClient();
-
-            smtp.CheckCertificateRevocation = false;
-
-            smtp.Connect(_mailSettings.Host, _mailSettings.Port, SecureSocketOptions.StartTls);
-            smtp.Authenticate(_mailSettings.Mail, _mailSettings.Password);
-            await smtp.SendAsync(message);
-            smtp.Disconnect(true);
+            await client.SendEmailAsync(msg);
         }
     }
 }
