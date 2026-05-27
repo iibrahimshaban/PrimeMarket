@@ -123,6 +123,7 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
                 b.BrandName,
                 b.Description,
                 b.LogoUrl,
+                b.Id,
                 $"{b.Street}, {b.City}, {b.Country}"
             ))
             .ToListAsync(cancellationToken);

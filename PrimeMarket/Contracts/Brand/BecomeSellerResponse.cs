@@ -5,5 +5,6 @@ public record BecomeSellerResponse(
     string BrandName,
     string? Description,
     string? Logo,
+    int BrandId,
     string Location
  );
