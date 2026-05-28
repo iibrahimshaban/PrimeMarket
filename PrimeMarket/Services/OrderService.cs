@@ -220,6 +220,55 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
     }
 
     // -----------------------------------------------------------------------
+    public async Task<PaginationList<CustomerOrderResponse>> GetCustomerOrdersAsync(
+       string customerId,
+       RequestFilter filter,
+       CancellationToken cancellationToken)
+    {
+        var query = _context.Orders.Where(o => o.UserId == customerId).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchValue))
+        {
+            var search = filter.SearchValue.Trim().ToLower();
+
+            query = query.Where(o =>
+                    o.Id.ToString().Contains(search) ||
+                    o.Items.Any(i =>
+                        i.Product.Seller.FirstName.ToLower().Contains(search) ||
+                        i.Product.Seller.LastName.ToLower().Contains(search)));
+        }
+
+        var isDesc = filter.SortDirection.Equals(
+            "DESC",
+            StringComparison.OrdinalIgnoreCase);
+
+        query = filter.SortColumn?.ToLower() switch
+        {
+            "amount" => isDesc
+                ? query.OrderByDescending(o => o.TotalAmount)
+                : query.OrderBy(o => o.TotalAmount),
+
+            "status" => isDesc
+                ? query.OrderByDescending(o => o.Status)
+                : query.OrderBy(o => o.Status),
+
+            "createdon" => isDesc
+                ? query.OrderByDescending(p => p.CreatedOn)
+                : query.OrderBy(p => p.CreatedOn),
+
+            _ => query.OrderByDescending(p => p.CreatedOn)
+        };
+
+        var projected = query.ProjectToType<CustomerOrderResponse>();
+
+        return await PaginationList<CustomerOrderResponse>.CreateAsync(
+            projected,
+            filter.PageNumber,
+            filter.PageSize
+        );
+    }
+
+    // -----------------------------------------------------------------------
 
     public async Task<PaginationList<AdminOrderResponse>> GetAdminOrdersAsync(
         RequestFilter filter,
@@ -290,7 +339,7 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
     }
 
     // -----------------------------------------------------------------------
-    public async Task<Result> UpdateOrderStatusAsync(string sellerId, int orderId, OrderStatus newStatus)
+    public async Task<Result> UpdateOrderStatusAsync(string userId, int orderId, OrderStatus newStatus)
     {
         var order = await _context.Orders
         .Include(o => o.Items)
@@ -300,9 +349,13 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         if (order is null)
             return Result.Failure(OrderError.OrderNotFound);
 
-        var isSellerOwner = order.Items.Any(i => i.Product.SellerId == sellerId);
+        var isSellerOwner = order.Items.Any(i => i.Product.SellerId == userId);
+        var isCustomerOwner = order.UserId == userId;
 
-        if (!isSellerOwner)
+        if (!isSellerOwner && !isCustomerOwner)
+            return Result.Failure(OrderError.UnauthorizedAction);
+
+        if(isCustomerOwner && !(order.Status == OrderStatus.Pending && newStatus == OrderStatus.Cancelled))
             return Result.Failure(OrderError.UnauthorizedAction);
 
         order.Status = newStatus;

@@ -59,6 +59,24 @@ public class OrdersController(IOrderService orderService) : ControllerBase
 
     // -----------------------------------------------------------------------
 
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetCustomerOrders(
+        [FromQuery] RequestFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await orderService.GetCustomerOrdersAsync(
+            customerId!,
+            filter,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    // -----------------------------------------------------------------------
+
     [HttpGet("admin")]
     [Authorize]
     public async Task<IActionResult> GetAdminOrders(
@@ -93,16 +111,16 @@ public class OrdersController(IOrderService orderService) : ControllerBase
 
     // -----------------------------------------------------------------------
 
-    [HttpPut("seller/{orderId:int}/status")]
+    [HttpPut("{orderId:int}/status")]
     [Authorize]
     public async Task<IActionResult> UpdateOrderStatus(
         int orderId,
         [FromBody] UpdateOrderStatusRequest request)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var result = await orderService.UpdateOrderStatusAsync(
-            sellerId!,
+            userId!,
             orderId,
             request.Status);
 
