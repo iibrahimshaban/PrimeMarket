@@ -70,5 +70,11 @@ namespace PrimeMarket.Controllers
 
             return result.IsSuccess ? Ok() : result.ToProblem();
         }
+        [HttpPost("LoginWithGoogle")]
+        public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleCredential credential)
+        {
+            var result = await _authService.LoginWithGoogleAsync(credential);
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        }
     }
 }
