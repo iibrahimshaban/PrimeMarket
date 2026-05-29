@@ -25,7 +25,7 @@ public class InventoryController(IInventoryService inventoryService) : Controlle
     // -----------------------------------------------------------------------
 
     [HttpPost("adjust")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Seller)]
     public async Task<IActionResult> AdjustStock(int productId,[FromBody] AdjustStockRequest request)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
