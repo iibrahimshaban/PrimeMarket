@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Google.Apis.Auth;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 using PrimeMarket.Authentication;
 using PrimeMarket.Contracts.Authentication;
 using PrimeMarket.Errors;
@@ -16,7 +18,8 @@ namespace PrimeMarket.Services.Authentication
         IJwtProvider jwtProvider,
         SignInManager<ApplicationUser> signInManager,
         ILogger<AuthService> logger, IEmailSender emailSender,
-        IHttpContextAccessor httpContextAccessor
+        IHttpContextAccessor httpContextAccessor,
+        IConfiguration configuration
         ) : IAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
@@ -287,10 +290,96 @@ namespace PrimeMarket.Services.Authentication
 
             return Result.Success();
         }
-
         private static string GenerateRefreshToken()
         {
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        }
+        public async Task<Result<AuthResponse>> LoginWithGoogleAsync(GoogleCredential googlecredential)
+        {
+            if (string.IsNullOrWhiteSpace(configuration["Google:ClientId"]))
+                return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+
+            try
+            {
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new List<string> { configuration["Google:ClientId"]! }
+                };
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(googlecredential.Credential, settings);
+
+                if (string.IsNullOrWhiteSpace(payload.Email))
+                    return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+
+                var user = await _userManager.FindByEmailAsync(payload.Email);
+
+                if (user is null)
+                {
+                    user = new ApplicationUser
+                    {
+                        UserName = payload.Email,
+                        Email = payload.Email,
+                        FirstName = payload.GivenName ?? payload.Name ?? "Google",
+                        LastName = payload.FamilyName ?? string.Empty,
+                        EmailConfirmed = true
+                    };
+
+                    var createResult = await _userManager.CreateAsync(user);
+                    if (!createResult.Succeeded)
+                    {
+                        var createError = createResult.Errors.First();
+                        return Result.Failure<AuthResponse>(new Error(createError.Code, createError.Description, StatusCodes.Status400BadRequest));
+                    }
+
+                    var addRoleResult = await _userManager.AddToRoleAsync(user, DefaultRoles.Customer);
+                    if (!addRoleResult.Succeeded)
+                    {
+                        var roleError = addRoleResult.Errors.First();
+                        return Result.Failure<AuthResponse>(new Error(roleError.Code, roleError.Description, StatusCodes.Status400BadRequest));
+                    }
+                }
+
+                if (user.IsDisabled)
+                    return Result.Failure<AuthResponse>(UserErrors.DisabledUser);
+
+                if (user.LockoutEnd > DateTime.UtcNow)
+                    return Result.Failure<AuthResponse>(UserErrors.LockedUser);
+
+                if (!user.EmailConfirmed)
+                    user.EmailConfirmed = true;
+
+                var userLogins = await _userManager.GetLoginsAsync(user);
+                if (!userLogins.Any(x => x.LoginProvider == "Google"))
+                {
+                    var addLoginResult = await _userManager.AddLoginAsync(user, new UserLoginInfo("Google", payload.Subject, "Google"));
+                    if (!addLoginResult.Succeeded)
+                    {
+                        var loginError = addLoginResult.Errors.First();
+                        return Result.Failure<AuthResponse>(new Error(loginError.Code, loginError.Description, StatusCodes.Status400BadRequest));
+                    }
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var (token, expiresIn) = _jwtToken.GenerateJwtToken(user, roles);
+
+                var refreshToken = GenerateRefreshToken();
+                var refreshTokenExpiryDate = DateTime.UtcNow.AddDays(RefreshTokenExpiryInDays);
+
+                user.RefreshTokens.Add(new RefreshToken
+                {
+                    Token = refreshToken,
+                    ExpiresOn = refreshTokenExpiryDate
+                });
+
+                await _userManager.UpdateAsync(user);
+
+                return Result.Success(new AuthResponse(user.Id, user.Email!, user.FirstName, user.LastName, token, expiresIn,
+                    refreshToken, refreshTokenExpiryDate, user.ProfilePictureUrl));
+            }
+            catch (InvalidJwtException)
+            {
+                return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+            }
         }
     }
 }

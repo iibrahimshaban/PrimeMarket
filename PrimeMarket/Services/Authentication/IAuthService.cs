@@ -13,7 +13,7 @@ namespace PrimeMarket.Services.Authentication
         Task<Result> ResetPasswordAsync(MyResetPasswordRequest request);
         Task<Result<AuthResponse>> GetRefreshTokenAsync(string Token, string Refreshtoken,
             CancellationToken cancellationToken = default);
-
+        Task<Result<AuthResponse>> LoginWithGoogleAsync(GoogleCredential googlecredential);
         Task<Result> RevokeRefreshTokenAsync(string Token, string Refreshtoken,
             CancellationToken cancellationToken = default);
     }
