@@ -358,6 +358,14 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         if(isCustomerOwner && !(order.Status == OrderStatus.Pending && newStatus == OrderStatus.Cancelled))
             return Result.Failure(OrderError.UnauthorizedAction);
 
+        if (newStatus == OrderStatus.Cancelled)
+        {
+            foreach (var item in order.Items)
+            {
+                item.Product.Stock += item.Quantity;
+            }
+        }
+
         order.Status = newStatus;
         await _context.SaveChangesAsync();
 

@@ -42,7 +42,7 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpGet("seller")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Seller)]
     public async Task<IActionResult> GetSellerOrders(
         [FromQuery] RequestFilter filter,
         CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpGet]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Customer)]
     public async Task<IActionResult> GetCustomerOrders(
         [FromQuery] RequestFilter filter,
         CancellationToken cancellationToken)
@@ -78,7 +78,7 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpGet("admin")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Admin)]
     public async Task<IActionResult> GetAdminOrders(
         [FromQuery] RequestFilter filter,
         CancellationToken cancellationToken)
@@ -94,7 +94,7 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpGet("seller/{orderId:int}")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Seller)]
     public async Task<IActionResult> GetSellerOrderById(int orderId)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -112,7 +112,7 @@ public class OrdersController(IOrderService orderService) : ControllerBase
     // -----------------------------------------------------------------------
 
     [HttpPut("{orderId:int}/status")]
-    [Authorize]
+    [Authorize(Roles = $"{DefaultRoles.Customer},{DefaultRoles.Seller}")]
     public async Task<IActionResult> UpdateOrderStatus(
         int orderId,
         [FromBody] UpdateOrderStatusRequest request)

@@ -35,7 +35,7 @@ public class CategoriesController(ICategoryService _categoryService) : Controlle
     // -----------------------------------------------------------------------
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Admin)]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
         var result = await categoryService.CreateCategoryAsync(request);
@@ -48,7 +48,7 @@ public class CategoriesController(ICategoryService _categoryService) : Controlle
     // -----------------------------------------------------------------------
 
     [HttpPut("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Admin)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request)
     {
         var result = await categoryService.UpdateCategoryAsync(id, request);
@@ -61,7 +61,7 @@ public class CategoriesController(ICategoryService _categoryService) : Controlle
     // -----------------------------------------------------------------------
 
     [HttpDelete("{id:int}")]
-    [Authorize]
+    [Authorize(Roles = DefaultRoles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await categoryService.DeleteCategoryAsync(id);
