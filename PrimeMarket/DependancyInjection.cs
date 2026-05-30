@@ -154,17 +154,21 @@ public static class DependancyInjection
         services.AddScoped<IBrandService, BrandService>();
         services.AddScoped<IReviewService, ReviewService>();
 
+        services.AddSignalR();
+        services.AddScoped<INotificationService, NotificationService>();
+
         return services;
     }
     private static IServiceCollection AddCORSService(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCors(options =>
-            options.AddDefaultPolicy(builder =>
+            options.AddPolicy("AllowAngular", builder =>  // ← named instead of default
                 builder
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .WithOrigins(configuration.GetSection("AllowedOrigins").Get<string[]>()!)
-                )
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .WithOrigins(configuration.GetSection("AllowedOrigins").Get<string[]>()!)
+                    .AllowCredentials()
+            )
         );
 
         return services;

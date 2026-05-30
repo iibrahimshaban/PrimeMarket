@@ -19,4 +19,6 @@ public static class ProductError
 
     public static readonly Error CannotDeleteOnlyImage = new(
         "Product.CannotDeleteOnlyImage", "Cannot delete the only image of a product.", StatusCodes.Status400BadRequest);
+    public static readonly Error InsufficientStock = new(
+        "Product.InsufficientStock", "Insufficient stock for one or more products in the cart.", StatusCodes.Status400BadRequest);
 }
