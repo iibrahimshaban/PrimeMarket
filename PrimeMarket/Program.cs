@@ -1,4 +1,5 @@
 using PrimeMarket;
+using PrimeMarket.Hubs;
 using PrimeMarket.Services.Authentication;
 using Serilog;
 using Stripe;
@@ -28,19 +29,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors();
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups";
+    await next();
+});
 
 app.Use(async (context, next) =>
 {
     context.Request.EnableBuffering();
     await next();
 });
+
+app.UseCors("AllowAngular");
+
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapHub<NotificationHub>("/hubs/notifications")
+    .RequireCors("AllowAngular");
+
+app.MapControllers();
 
 app.Run();

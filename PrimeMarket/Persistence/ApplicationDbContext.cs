@@ -54,5 +54,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Wishlist> Wishlists => Set<Wishlist>();
     public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
     public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 }
  

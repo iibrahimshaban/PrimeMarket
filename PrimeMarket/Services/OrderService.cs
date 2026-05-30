@@ -1,17 +1,15 @@
-﻿using PrimeMarket.Contracts;
-using PrimeMarket.Contracts.Common;
+﻿using PrimeMarket.Contracts.Common;
 using PrimeMarket.Contracts.Orders;
-using PrimeMarket.Contracts.Products;
 using PrimeMarket.Contracts.PromoCodes;
-using PrimeMarket.Errors;
 using PrimeMarket.Helpers;
 using Stripe;
 
 namespace PrimeMarket.Services;
 
-public class OrderService(ApplicationDbContext contextt) : IOrderService
+public class OrderService(ApplicationDbContext contextt, INotificationService notificationService) : IOrderService
 {
     private readonly ApplicationDbContext _context = contextt;
+    private readonly INotificationService _notificationService = notificationService;
 
     public async Task<Result<PromoCodeValidationResponse>> ValidatePromoCodeAsync(
         string code, decimal cartTotal)
@@ -53,6 +51,14 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         if (address is null)
             return Result.Failure<PlaceOrderResponse>(OrderError.AddressNotFound);
 
+        var insufficientStock = cartItems
+            .Where(ci => ci.Product.Stock < ci.Quantity)
+            .Select(ci => ci.Product.Name)
+            .ToList();
+
+        if (insufficientStock.Count != 0)
+            return Result.Failure<PlaceOrderResponse>(ProductError.InsufficientStock);
+
         // 3. apply promo code
         decimal discountAmount = 0;
         PromoCode? promo = null;
@@ -79,6 +85,8 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         }
 
         decimal totalAmount = subtotal - discountAmount;
+
+
 
         // 4. create order
         var order = new Order
@@ -124,9 +132,19 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         }
 
         // 6. clear cart
+        foreach (var item in cartItems)
+            item.Product.Stock -= item.Quantity;
+
         _context.CartItems.RemoveRange(cartItems);
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
+
+        await _notificationService.SendToUserAsync(
+            userId,
+            "Order Placed",
+            $"Your order #{order.Id} has been placed successfully. Total: {totalAmount:C}",
+            "order"
+        );
 
         return Result.Success(new PlaceOrderResponse(
             order.Id,
@@ -352,11 +370,11 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
         var isSellerOwner = order.Items.Any(i => i.Product.SellerId == userId);
         var isCustomerOwner = order.UserId == userId;
 
-        if (!isSellerOwner && !isCustomerOwner)
-            return Result.Failure(OrderError.UnauthorizedAction);
-
-        if(isCustomerOwner && !(order.Status == OrderStatus.Pending && newStatus == OrderStatus.Cancelled))
-            return Result.Failure(OrderError.UnauthorizedAction);
+        if (!isSellerOwner && isCustomerOwner)
+        {
+            if (!(order.Status == OrderStatus.Pending && newStatus == OrderStatus.Cancelled))
+                return Result.Failure(OrderError.UnauthorizedAction);
+        }
 
         if (newStatus == OrderStatus.Cancelled)
         {
@@ -368,6 +386,17 @@ public class OrderService(ApplicationDbContext contextt) : IOrderService
 
         order.Status = newStatus;
         await _context.SaveChangesAsync();
+
+        var (title, message) = order.Status switch
+        {
+            OrderStatus.Confirmed => ("Order Confirmed", $"Your order #{order.Id} has been confirmed and is being prepared."),
+            OrderStatus.Shipped => ("Order Shipped", $"Your order #{order.Id} is on its way!"),
+            OrderStatus.Delivered => ("Order Delivered", $"Your order #{order.Id} has been delivered. Enjoy!"),
+            OrderStatus.Cancelled => ("Order Cancelled", $"Your order #{order.Id} has been cancelled."),
+            _ => ("Order Updated", $"Your order #{order.Id} status has been updated to {order.Status}.")
+        };
+
+        await _notificationService.SendToUserAsync(order.UserId, title, message, "order");
 
         return Result.Success();
     }

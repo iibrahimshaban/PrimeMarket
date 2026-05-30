@@ -3,10 +3,11 @@
 
 namespace PrimeMarket.Services;
 
-public class BrandService(ApplicationDbContext context, ICloudinaryService cloudinaryService) : IBrandService
+public class BrandService(ApplicationDbContext context, ICloudinaryService cloudinaryService, INotificationService notificationService) : IBrandService
 {
     private readonly ApplicationDbContext _context = context;
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
+    private readonly INotificationService _notificationService = notificationService;
 
     public async Task<List<BrandResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -100,6 +101,14 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
         await _context.Brands.AddAsync(brand, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await _notificationService.SendToUserAsync(
+            userId,
+            "Seller Request Submitted",
+            $"Your request to register '{request.BrandName}' as a seller has been submitted and is under review.",
+            "brand",
+            cancellationToken
+        );
+
         return Result.Success();
     }
     public async Task<Result> GetStatusAsync(string userId, CancellationToken cancellationToken = default)
@@ -139,6 +148,14 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
 
         brand.IsVerified = true;
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notificationService.SendToUserAsync(
+            brand.UserId,
+            "Seller Request Approved",
+            $"Congratulations! Your brand '{brand.BrandName}' has been approved. You can now start selling.",
+            "brand",
+            cancellationToken
+        );
         return Result.Success();
     }
 
@@ -149,8 +166,19 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
         if (brand == null)
             return Result.Failure(BrandErrors.BrandNotFound);
 
+        var userId = brand.UserId;
+        var brandName = brand.BrandName;
+
         _context.Brands.Remove(brand);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notificationService.SendToUserAsync(
+            userId,
+            "Seller Request Rejected",
+            $"Unfortunately, your request to register '{brandName}' has been rejected. Contact support for more details.",
+            "brand",
+            cancellationToken
+        );
         return Result.Success();
     }
 }
