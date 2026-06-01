@@ -1,3 +1,5 @@
+using Hangfire;
+using HangfireBasicAuthenticationFilter;
 using PrimeMarket;
 using PrimeMarket.Hubs;
 using PrimeMarket.Services.Authentication;
@@ -47,6 +49,19 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/jobs", new DashboardOptions
+{
+    Authorization =
+    [
+        new HangfireCustomBasicAuthenticationFilter
+        {
+            User = app.Configuration.GetValue<string>("HangfireSettings:Username"),
+            Pass = app.Configuration.GetValue<string>("HangfireSettings:password")
+        }
+    ],
+    DashboardTitle = "PrimeMarket dashboard"
+});
 
 app.MapHub<NotificationHub>("/hubs/notifications")
     .RequireCors("AllowAngular");

@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using FluentValidation.AspNetCore;
+using Hangfire;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -27,7 +28,8 @@ public static class DependancyInjection
             .AddDbContextConfiguration(configuration)
             .AddCloudinaryImageHosting(configuration)
             .AddCORSService(configuration)
-            .AddAuthConfig(configuration);
+            .AddAuthConfig(configuration)
+            .AddBackGroundJobsConfig(configuration);
 
         return services;
     }
@@ -178,6 +180,20 @@ public static class DependancyInjection
         services.AddFluentValidationAutoValidation()
                 .AddFluentValidationClientsideAdapters()
                 .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        return services;
+    }
+    private static IServiceCollection AddBackGroundJobsConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Add Hangfire services.
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(configuration.GetConnectionString("HangfireConnection")));
+
+        // Add the processing server as IHostedService
+        services.AddHangfireServer();
+
         return services;
     }
 }

@@ -3,6 +3,6 @@
     public interface IJwtProvider
     {
         (string Token, int expiresIn) GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles);
-        Result<string> ValidateToken(string Token);
+        Result<string> ValidateToken(string Token, bool validateLifetime = true);
     }
 }

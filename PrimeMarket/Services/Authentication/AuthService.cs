@@ -1,11 +1,10 @@
 ﻿using Google.Apis.Auth;
+using Hangfire;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Configuration;
 using PrimeMarket.Authentication;
 using PrimeMarket.Contracts.Authentication;
-using PrimeMarket.Errors;
 using SurveyBasket.Contracts.Authentication;
 using SurveyBasket.Helpers;
 using System.Security.Cryptography;
@@ -19,7 +18,8 @@ namespace PrimeMarket.Services.Authentication
         SignInManager<ApplicationUser> signInManager,
         ILogger<AuthService> logger, IEmailSender emailSender,
         IHttpContextAccessor httpContextAccessor,
-        IConfiguration configuration
+        IConfiguration configuration,
+        ApplicationDbContext context
         ) : IAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
@@ -28,6 +28,7 @@ namespace PrimeMarket.Services.Authentication
         private readonly ILogger<AuthService> _logger = logger;
         private readonly IEmailSender _emailSender = emailSender;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly ApplicationDbContext _context = context;
 
         private static readonly int RefreshTokenExpiryInDays = 90;
 
@@ -87,7 +88,7 @@ namespace PrimeMarket.Services.Authentication
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                 _logger.LogInformation("Confirmation code: {code}", code);
 
-                await SendConfirmationEmail(user, code);
+               await SendConfirmationEmail(user, code);
                 await _userManager.AddToRoleAsync(user, DefaultRoles.Customer);
                 return Result.Success();
             }
@@ -158,7 +159,7 @@ namespace PrimeMarket.Services.Authentication
 
             _logger.LogInformation("Confirmation code: {code}", code);
 
-            await SendConfirmationEmail(user, code);
+           await SendConfirmationEmail(user, code);
 
             return Result.Success();
         }
@@ -190,7 +191,7 @@ namespace PrimeMarket.Services.Authentication
             return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status401Unauthorized));
         }
 
-        private async Task SendConfirmationEmail(ApplicationUser user, string code)
+        public async Task SendConfirmationEmail(ApplicationUser user, string code)
         {
             var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
 
@@ -202,10 +203,10 @@ namespace PrimeMarket.Services.Authentication
                 }
             );
 
-            await _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: Email Confirmation", emailBody);
+            BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: Email Confirmation", emailBody));
         }
 
-        private async Task SendForgetPasswordConfirmationEmail(ApplicationUser user, string code)
+        public async Task SendForgetPasswordConfirmationEmail(ApplicationUser user, string code)
         {
             var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
 
@@ -217,17 +218,21 @@ namespace PrimeMarket.Services.Authentication
                 }
             );
 
-            await _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: ForgetPassword Confirmation", emailBody);
+            BackgroundJob.Enqueue(()=>  _emailSender.SendEmailAsync(user.Email!, "✅ Prime Market: ForgetPassword Confirmation", emailBody));
         }
 
         public async Task<Result<AuthResponse>> GetRefreshTokenAsync(string Token, string Refreshtoken, CancellationToken cancellationToken = default)
         {
-            var result = _jwtToken.ValidateToken(Token);
+            var result = _jwtToken.ValidateToken(Token, validateLifetime: false);
 
             if (result.IsFailure)
                 return Result.Failure<AuthResponse>(UserErrors.InvalidJwtToken);
 
-            if (await _userManager.FindByIdAsync(result.Value) is not { } user)
+            var user = await _context.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == result.Value, cancellationToken);
+
+            if (user is null)
                 return Result.Failure<AuthResponse>(UserErrors.InvalidJwtToken);
 
             if (user.IsDisabled)

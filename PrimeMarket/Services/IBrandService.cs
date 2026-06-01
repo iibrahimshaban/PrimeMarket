@@ -11,4 +11,5 @@ public interface IBrandService
     Task<IEnumerable<BecomeSellerResponse>> GetAllSellerRequestsAsync(CancellationToken cancellationToken = default);
     Task<Result> ApproveSellerRequestAsync(int brandId, CancellationToken cancellationToken = default);
     Task<Result> RejectSellerRequestAsync(int brandId, CancellationToken cancellationToken = default);
+    Task<Result<SellerRequestDetailsResponse>> GetSellerRequestDetailsAsync(int brandId, CancellationToken cancellationToken = default);
 }
