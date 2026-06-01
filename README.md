@@ -13,7 +13,7 @@
 A production-grade multi-role e-commerce marketplace API supporting Customer, Seller, and Admin workflows.
 Built as a capstone project for the **ITI Professional Development & BI-infused CRM** track.
 
-[GitHub — Frontend](https://github.com/Omar-Nabil2/PrimeMarket.git) · [Live API](#) · [Demo Video](#) · [Documentation](#)
+[GitHub — Frontend](https://github.com/Omar-Nabil2/PrimeMarket.git) · [Live API](https://primemarket.runasp.net/swagger/index.html) · [Demo Video](https://drive.google.com/drive/folders/10MTw88EuSTDAkqmA8uTsj0_GNZw7rPj4?usp=sharing) · [Documentation](https://drive.google.com/drive/folders/10MTw88EuSTDAkqmA8uTsj0_GNZw7rPj4?usp=sharing)
 
 </div>
 
@@ -463,8 +463,8 @@ PrimeMarket/
 | Code | Name | Contribution |
 |---|---|---|
 | 6 | **Ibrahim Khaled** | Cart · Wishlist · Orders (customer) · Checkout · Stripe webhook · Addresses · Reviews |
-| 17 | **Mohamed ElMassry** | Products (seller) · Product images · Orders (seller) · Brands · Inventory · Promo codes · Hangfire |
-| 20 | **Omar Nabil** | Auth system · JWT/Refresh tokens · Google OAuth · User management · Categories · Notifications · SignalR hub · Admin APIs |
+| 15 | **Mohamed ElMassry** | Products (seller) · Product images · Orders (seller) · Brands · Inventory · Promo codes · Hangfire |
+| 24 | **Omar Nabil** | Auth system · JWT/Refresh tokens · Google OAuth · User management · Categories · Notifications · SignalR hub · Admin APIs |
 
 ---
 
