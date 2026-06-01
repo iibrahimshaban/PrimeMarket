@@ -63,4 +63,10 @@ public class BrandsController(IBrandService brandService) : ControllerBase
         var result = await _brandService.RejectSellerRequestAsync(brandId, ct);
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
+    [HttpGet("{brandId}/details")]
+    public async Task<IActionResult> GetDetails(int brandId, CancellationToken ct)
+    {
+        var result = await _brandService.GetSellerRequestDetailsAsync(brandId, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
 }

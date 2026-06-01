@@ -1,13 +1,24 @@
-﻿using PrimeMarket.Contracts.Brand;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
+using PrimeMarket.Contracts.Brand;
+using PrimeMarket.Hubs;
 
 
 namespace PrimeMarket.Services;
 
-public class BrandService(ApplicationDbContext context, ICloudinaryService cloudinaryService, INotificationService notificationService) : IBrandService
+public class BrandService(
+    ApplicationDbContext context,
+    ICloudinaryService cloudinaryService,
+    INotificationService notificationService,
+    UserManager<ApplicationUser> userManager,
+    IHubContext<NotificationHub> hubContext
+    ) : IBrandService
 {
     private readonly ApplicationDbContext _context = context;
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
     private readonly INotificationService _notificationService = notificationService;
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IHubContext<NotificationHub> _hubContext = hubContext;
 
     public async Task<List<BrandResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -146,16 +157,30 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
         if (brand == null)
             return Result.Failure(BrandErrors.BrandNotFound);
 
+        var seller = await _context.Users.FirstOrDefaultAsync(u => u.Id == brand.UserId, cancellationToken);
+
+        if (seller == null)
+            return Result.Failure(UserErrors.UserNotFound);
+
+        var alreadyHasRole = await _userManager.IsInRoleAsync(seller, DefaultRoles.Seller);
+        if (!alreadyHasRole)
+        {
+            var roleResult = await _userManager.AddToRoleAsync(seller, DefaultRoles.Seller);
+            if (!roleResult.Succeeded)
+            {
+                var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Role.Failed", errors, StatusCodes.Status400BadRequest));
+            }
+        }
+
         brand.IsVerified = true;
+        await _userManager.AddToRoleAsync(seller, DefaultRoles.Seller);
         await _context.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.SendToUserAsync(
-            brand.UserId,
-            "Seller Request Approved",
-            $"Congratulations! Your brand '{brand.BrandName}' has been approved. You can now start selling.",
-            "brand",
-            cancellationToken
-        );
+        await _hubContext.Clients
+         .User(brand.UserId)
+         .SendAsync("RoleUpdated", cancellationToken);
+
         return Result.Success();
     }
 
@@ -181,4 +206,31 @@ public class BrandService(ApplicationDbContext context, ICloudinaryService cloud
         );
         return Result.Success();
     }
+    public async Task<Result<SellerRequestDetailsResponse>> GetSellerRequestDetailsAsync(int brandId, CancellationToken cancellationToken = default) {
+
+        var brand = await _context.Brands
+        .Where(b => b.Id == brandId && !b.IsVerified)
+        .Select(b => new SellerRequestDetailsResponse(
+            b.Id,
+            b.UserId,
+            b.BrandName,
+            b.Description,
+            b.LogoUrl,
+            b.Street,
+            b.City,
+            b.Country,
+            b.Latitude,
+            b.Longitude,
+            b.User.FirstName + " " + b.User.LastName,
+            b.User.Email!,
+            b.User.ProfilePictureUrl
+        ))
+        .FirstOrDefaultAsync(cancellationToken);
+
+        if (brand is null)
+            return Result.Failure<SellerRequestDetailsResponse>(BrandErrors.BrandNotFound);
+
+        return Result.Success(brand);
+    }
+            
 }

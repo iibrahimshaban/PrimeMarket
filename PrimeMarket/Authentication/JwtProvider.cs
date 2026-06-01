@@ -37,7 +37,7 @@ namespace PrimeMarket.Authentication
             return (token: new JwtSecurityTokenHandler().WriteToken(token), 
                     expiresIn: _JwtOptions.ExpiryMinutes * 60);
         }
-        public Result<string> ValidateToken(string Token)
+        public Result<string> ValidateToken(string Token, bool validateLifetime = true)
         {
             var TokenHandler = new JwtSecurityTokenHandler();
             var SynmmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JwtOptions.Key));
@@ -49,6 +49,7 @@ namespace PrimeMarket.Authentication
                     IssuerSigningKey = SynmmetricKey,
                     ValidateIssuerSigningKey = true,
                     ValidateIssuer = false,
+                    ValidateLifetime = validateLifetime,
                     ValidateAudience = false,
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
